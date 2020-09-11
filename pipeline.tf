@@ -1,13 +1,13 @@
-resource "aws_codepipeline" "sellix-web-app" {
-  name     = "sellix-web-app"
-  role_arn  = aws_iam_role.codepipeline_role.arn
+resource "aws_codepipeline" "web-app-codepipeline" {
+  name      = "web-app-codepipeline"
+  role_arn  = aws_iam_role.web-app-codepipeline-role.arn
   tags     = {
     "Name"        = "sellix-web-app-pipeline"
     "Project"     = "sellix-web-app"
     "Environment" = "production"
   }
   artifact_store {
-    location = aws_s3_bucket.sellix-web-app-codepipeline-bucket.bucket
+    location = aws_s3_bucket.web-app-codepipeline-s3-bucket.bucket
     type     = "S3"
   }
   stage {
@@ -39,8 +39,8 @@ resource "aws_codepipeline" "sellix-web-app" {
       input_artifacts = ["sellix-web-app-Artifacts"]
       version          = "1"
       configuration = {
-        ApplicationName = aws_elastic_beanstalk_application.sellix-web-app.name
-        EnvironmentName = aws_elastic_beanstalk_environment.sellix-web-app.name
+        ApplicationName = aws_elastic_beanstalk_application.web-app.name
+        EnvironmentName = aws_elastic_beanstalk_environment.web-app-environment.name
       }
     }
   }

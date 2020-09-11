@@ -1,4 +1,4 @@
-resource "aws_key_pair" "sellix-web-app-keypair" {
+resource "aws_key_pair" "web-app-keypair" {
   key_name   = "sellix-web-app-keypair"
   public_key = file("${var.public_key_path}")
   lifecycle {
@@ -10,22 +10,22 @@ variable "aws_access_key" {}
 
 variable "aws_secret_key" {}
 
-variable "AWS_REGION" {
+variable "aws_region" {
   default = "eu-west-1"
 }
 
 variable "public_key_path" {
-  description = "SSH KEY"
+  description = "ssh key"
   default     = "~/.ssh/id_rsa.pub"
 }
 
 variable "main_cidr_block" {
-  description = "MAIN CIDR"
+  description = "main cidr"
   default     = "172.18.0.0/16"
 }
 
 variable "public_cidr_block" {
-  description = "PUBLIC CIDR"
+  description = "public cidr"
   default     = "172.18.1.0/24"
 }
 

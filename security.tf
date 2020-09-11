@@ -1,7 +1,7 @@
-resource "aws_security_group" "sellix-web-app-security-group" {
+resource "aws_security_group" "web-app-security-group" {
   name        = "sellix-web-app-security-group"
   description = "Allow inbound traffic"
-  vpc_id      = aws_vpc.sellix-web-app-vpc.id
+  vpc_id      = aws_vpc.web-app-vpc.id
   ingress {
     from_port       = 0
     to_port         = 0
