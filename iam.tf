@@ -60,7 +60,7 @@ data "aws_iam_policy_document" "web-app-ec2-policy-document" {
 }
 
 resource "aws_iam_role" "web-app-codepipeline-role" {
-  name               = "web-app-codepipeline-role"
+  name               = "sellix-web-app-codepipeline-role"
   assume_role_policy = data.aws_iam_policy_document.web-app-service-policy-document.json
 }
 
@@ -70,7 +70,7 @@ resource "aws_iam_role" "web-app-service-role" {
 }
 
 resource "aws_iam_role" "web-app-ec2-role" {
-  name               = "sellix-web-app-eb-ec2"
+  name               = "sellix-web-app-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.web-app-ec2-policy-document.json
 }
 

@@ -77,12 +77,12 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
 }
 
 resource "aws_elastic_beanstalk_application" "web-app" {
-  name        = "web-app"
+  name        = "sellix-web-app"
   description = "NodeJS Web Application"
 }
 
-resource "aws_elastic_beanstalk_application_version" "web-app" {
-  name        = "sellix-web-app"
+resource "aws_elastic_beanstalk_application_version" "web-app-version" {
+  name        = "sellix-web-app-version"
   application = aws_elastic_beanstalk_application.web-app.name
   description = "application version created by terraform"
   bucket      = "sellix-elastic-beanstalk-hello-world"

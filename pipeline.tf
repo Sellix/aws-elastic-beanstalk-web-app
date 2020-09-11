@@ -1,5 +1,5 @@
 resource "aws_codepipeline" "web-app-codepipeline" {
-  name      = "web-app-codepipeline"
+  name      = "sellix-web-app-codepipeline"
   role_arn  = aws_iam_role.web-app-codepipeline-role.arn
   tags     = {
     "Name"        = "sellix-web-app-pipeline"
