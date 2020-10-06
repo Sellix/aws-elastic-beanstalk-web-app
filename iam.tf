@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "web-app-ec2-policy-document" {
   }
 }
 
-data "aws_iam_policy_document" "codebuild" {
+data "aws_iam_policy_document" "web-app-codebuild-policy-document" {
   statement {
     sid    = "AllowS3"
     effect = "Allow"
@@ -77,7 +77,7 @@ data "aws_iam_policy_document" "codebuild" {
   }
 }
 
-data "aws_iam_policy_document" "codebuild_assumerole" {
+data "aws_iam_policy_document" "web-app-codebuild-assumerole-policy-document" {
   statement {
     sid    = "AllowCodeBuildAssumeRole"
     effect = "Allow"
@@ -93,7 +93,7 @@ data "aws_iam_policy_document" "codebuild_assumerole" {
   }
 }
 
-data "aws_iam_policy_document" "codebuild-permissions" {
+data "aws_iam_policy_document" "web-app-codebuild-permissions-policy-document" {
   statement {
     sid = ""
     actions = [
@@ -224,29 +224,29 @@ resource "aws_iam_role_policy_attachment" "web-app-ssm-automation-policy-attachm
   }
 }
 
-resource "aws_iam_role" "codebuild" {
-  name               = "web-app-${var.environment_check}-codebuild"
-  assume_role_policy = data.aws_iam_policy_document.codebuild_assumerole.json
+resource "aws_iam_role" "web-app-codebuild-role" {
+  name               = "sellix-web-app-${var.environment_check}-codebuild-role"
+  assume_role_policy = data.aws_iam_policy_document.web-app-codebuild-assumerole-policy-document.json
 }
 
-resource "aws_iam_policy" "codebuild-permissions" {
-  name   = "sellix-web-app-${var.environment_check}-codebuild-permissions"
+resource "aws_iam_policy" "web-app-codebuild-permissions-policy" {
+  name   = "sellix-web-app-${var.environment_check}-codebuild-permissions-policy"
   path   = "/service-role/"
-  policy = data.aws_iam_policy_document.codebuild-permissions.json
+  policy = data.aws_iam_policy_document.web-app-codebuild-permissions-policy-document.json
 }
 
-resource "aws_iam_policy" "codebuild" {
-  name        = "sellix-web-app-${var.environment_check}-codebuild"
+resource "aws_iam_policy" "web-app-codebuild-policy" {
+  name        = "sellix-web-app-${var.environment_check}-codebuild-policy"
   description = "CodeBuild access policy"
-  policy      = data.aws_iam_policy_document.codebuild.json
+  policy      = data.aws_iam_policy_document.web-app-codebuild-policy-document.json
 }
 
-resource "aws_iam_role_policy_attachment" "codebuild" {
-  role       = aws_iam_role.codebuild.name
-  policy_arn = aws_iam_policy.codebuild.arn
+resource "aws_iam_role_policy_attachment" "web-app-codebuild-policy-attachment" {
+  role       = aws_iam_role.web-app-codebuild-role.name
+  policy_arn = aws_iam_policy.web-app-codebuild-policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "codebuild-permissions" {
-  role       = aws_iam_role.codebuild.name
-  policy_arn = aws_iam_policy.codebuild-permissions.arn
+resource "aws_iam_role_policy_attachment" "web-app-codebuild-permissions-policy-attachment" {
+  role       = aws_iam_role.web-app-codebuild-role.name
+  policy_arn = aws_iam_policy.web-app-codebuild-permissions-policy.arn
 }

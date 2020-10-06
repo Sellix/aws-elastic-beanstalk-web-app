@@ -1,5 +1,5 @@
 resource "aws_security_group" "web-app-security-group" {
-  name        = "sellix-web-app-${var.environment_check}-security-group-legacy"
+  name        = "sellix-web-app-${var.environment_check}-security-group"
   description = "Allow inbound traffic"
   vpc_id      = aws_vpc.web-app-vpc.id
   ingress {
@@ -17,8 +17,8 @@ resource "aws_security_group" "web-app-security-group" {
   tags = local.tags
 }
 
-resource "aws_security_group" "elb-web-app-security-group" {
-  name        = "sellix-elb-web-app-${var.environment_check}-security-group-legacy"
+resource "aws_security_group" "web-app-elb-security-group" {
+  name        = "sellix-web-app-${var.environment_check}-elb-security-group"
   description = "Allow ELB inbound traffic"
   vpc_id      = aws_vpc.web-app-vpc.id
   ingress {

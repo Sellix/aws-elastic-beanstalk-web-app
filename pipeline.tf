@@ -1,5 +1,5 @@
 resource "aws_codepipeline" "web-app-codepipeline" {
-  name      = "sellix-web-app-${var.environment_check}-codepipeline-legacy"
+  name      = "sellix-web-app-${var.environment_check}-codepipeline"
   role_arn  = aws_iam_role.web-app-codepipeline-role.arn
   tags = local.tags
   artifact_store {
@@ -14,13 +14,13 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       owner            = "ThirdParty"
       provider         = "GitHub"
       version          = "1"
-      output_artifacts = ["sellix-web-app-Artifacts"]
+      output_artifacts = ["sellix-web-app-artifacts"]
 
       configuration = {
         OAuthToken           = "${var.github_oauth}"
         Owner                = "${var.github_org}"
         Repo                 = "${var.github_repo}"
-        Branch               = local.is_prod ? "master" : "staging"
+        Branch               = local.production ? "master" : "staging"
         PollForSourceChanges = true
       }
     }
@@ -33,8 +33,8 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       owner            = "AWS"
       provider         = "CodeBuild"
       version          = "1"
-      input_artifacts  = ["sellix-web-app-Artifacts"]
-      output_artifacts = ["sellix-web-app-codebuild-Artifacts"]
+      input_artifacts  = ["sellix-web-app-artifacts"]
+      output_artifacts = ["sellix-web-app-codebuild-artifacts"]
       configuration = {
         ProjectName = aws_codebuild_project.web-app.name
       }
@@ -47,7 +47,7 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       name             = "Deploy"
       owner            = "AWS"
       provider         = "ElasticBeanstalk"
-      input_artifacts  = ["sellix-web-app-codebuild-Artifacts"]
+      input_artifacts  = ["sellix-web-app-codebuild-artifacts"]
       version          = "1"
       configuration = {
         ApplicationName = aws_elastic_beanstalk_application.web-app.name
@@ -60,7 +60,7 @@ resource "aws_codepipeline" "web-app-codepipeline" {
 resource "aws_codebuild_project" "web-app" {
   name           = "sellix-web-app-${var.environment_check}-codebuild"
   description    = "CodeBuild"
-  service_role = aws_iam_role.codebuild.arn
+  service_role = aws_iam_role.web-app-codebuild-role.arn
   artifacts {
     type = "CODEPIPELINE"
   }

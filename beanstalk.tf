@@ -19,7 +19,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "InstanceType"
-    value     = local.is_prod ? "m4.large" : "t3.micro"
+    value     = local.production ? "m4.large" : "t3.micro"
   }
   setting {
     namespace = "aws:ec2:vpc"
@@ -118,7 +118,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   setting {
     namespace = "aws:autoscaling:asg"
     name      = "MaxSize"
-    value     = local.is_prod ? "15" : "5"
+    value     = local.production ? "15" : "5"
   }
   setting {
     namespace = "aws:elb:loadbalancer"
@@ -128,7 +128,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   setting {
     namespace = "aws:elb:loadbalancer"
     name      = "SecurityGroups"
-    value     = aws_security_group.elb-web-app-security-group.id
+    value     = aws_security_group.web-app-elb-security-group.id
   }
   setting {
     namespace = "aws:elb:listener"
@@ -163,7 +163,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   setting {
     namespace = "aws:elb:listener:443"
     name      = "SSLCertificateId"
-    value     = local.is_prod ? var.ssl_production_acm_arn : var.ssl_staging_acm_arn
+    value     = local.production ? var.ssl_production_acm_arn : var.ssl_staging_acm_arn
   }
   setting {
     namespace = "aws:elb:listener:443"
@@ -192,7 +192,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
     resource  = ""
   }
   dynamic "setting" {
-    for_each = local.env_vars
+    for_each = local.env
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key

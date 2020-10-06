@@ -4,11 +4,10 @@ locals {
     "Project"     = "sellix-web-app-${var.environment_check}"
     "Environment" = "${var.environment_check}"
   }
-  env_vars = {
+  env = {
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN            = local.is_prod ? "sellix.io" : "sellix.gg"
-    ENVIRONMENT       = local.is_prod ? "production" : "staging"
+    DOMAIN            = local.production ? "sellix.io" : "sellix.gg"
+    ENVIRONMENT       = local.production ? "production" : "staging"
   }
-  s3_key  = "elastic-beanstalk-web-app-${var.environment_check}.tfstate"
-  is_prod = var.environment_check == "production" ? true : false
+  production = var.environment_check == "production" ? true : false
 }
