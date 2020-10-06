@@ -44,9 +44,21 @@ variable "github_repo" {
   default     = "web-app"
 }
 
-variable "env_vars" {
-  type    = map(string)
-  default = {
-    ELASTIC_BEANSTALK_PORT  = 8080
+variable "environment_check" {
+  description = "staging or production"
+  type        = string
+  validation {
+    condition = var.environment_check == "production" || var.environment_check == "staging"
+    error_message = "Enviroment must be production or staging."
   }
+}
+
+variable "ssl_production_acm_arn" {
+  description = "SSL Certificate ARN"
+  default     = "arn:aws:acm:eu-west-1:671586216466:certificate/3bec7765-1c9a-4277-af3e-0aaa6283a3ed"
+}
+
+variable "ssl_staging_acm_arn" {
+  description = "SSL Certificate ARN"
+  default     = "arn:aws:acm:eu-west-1:671586216466:certificate/8e8d23d4-1c61-4d30-bfdd-6cb9b45e4c0a"
 }
