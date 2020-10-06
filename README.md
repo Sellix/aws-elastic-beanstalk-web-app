@@ -6,7 +6,9 @@ Repo related to the infrastructure with AWS Elastic Beanstalk for our web-app
 
 ## Setup
 
-`ENV=staging terraform init -backend-config="access_key=" -backend-config="secret_key="`
+Replace `{environment}` with either `production` or `staging`
+
+`ENV={environment} terraform init -backend-config="access_key=" -backend-config="secret_key="`
 
 `terraform apply`
 
