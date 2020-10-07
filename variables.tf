@@ -1,5 +1,5 @@
 resource "aws_key_pair" "web-app-keypair" {
-  key_name   = "sellix-web-app-keypair"
+  key_name   = "sellix-web-app-${var.environment_check}-keypair"
   public_key = file("${var.public_key_path}")
   lifecycle {
     ignore_changes = [public_key]

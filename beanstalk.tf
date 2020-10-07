@@ -3,7 +3,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   application            = aws_elastic_beanstalk_application.web-app.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = "64bit Amazon Linux 2 v5.2.1 running Node.js 12"
+  solution_stack_name    = "64bit Amazon Linux 2 v5.2.2 running Node.js 12"
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
