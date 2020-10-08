@@ -178,6 +178,23 @@ resource "aws_iam_role_policy" "web-app-default-policy" {
   policy = data.aws_iam_policy_document.web-app-default-policy-document.json
 }
 
+resource "aws_iam_role" "web-app-codebuild-role" {
+  name               = "sellix-web-app-${var.environment_check}-codebuild-role"
+  assume_role_policy = data.aws_iam_policy_document.web-app-codebuild-assumerole-policy-document.json
+}
+
+resource "aws_iam_policy" "web-app-codebuild-permissions-policy" {
+  name   = "sellix-web-app-${var.environment_check}-codebuild-permissions-policy"
+  path   = "/service-role/"
+  policy = data.aws_iam_policy_document.web-app-codebuild-permissions-policy-document.json
+}
+
+resource "aws_iam_policy" "web-app-codebuild-policy" {
+  name        = "sellix-web-app-${var.environment_check}-codebuild-policy"
+  description = "CodeBuild access policy"
+  policy      = data.aws_iam_policy_document.web-app-codebuild-policy-document.json
+}
+
 resource "aws_iam_role_policy_attachment" "web-app-codepipeline-policy-attachment" {
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess"
   role       = aws_iam_role.web-app-codepipeline-role.id
@@ -222,23 +239,6 @@ resource "aws_iam_role_policy_attachment" "web-app-ssm-automation-policy-attachm
   lifecycle {
     create_before_destroy = true
   }
-}
-
-resource "aws_iam_role" "web-app-codebuild-role" {
-  name               = "sellix-web-app-${var.environment_check}-codebuild-role"
-  assume_role_policy = data.aws_iam_policy_document.web-app-codebuild-assumerole-policy-document.json
-}
-
-resource "aws_iam_policy" "web-app-codebuild-permissions-policy" {
-  name   = "sellix-web-app-${var.environment_check}-codebuild-permissions-policy"
-  path   = "/service-role/"
-  policy = data.aws_iam_policy_document.web-app-codebuild-permissions-policy-document.json
-}
-
-resource "aws_iam_policy" "web-app-codebuild-policy" {
-  name        = "sellix-web-app-${var.environment_check}-codebuild-policy"
-  description = "CodeBuild access policy"
-  policy      = data.aws_iam_policy_document.web-app-codebuild-policy-document.json
 }
 
 resource "aws_iam_role_policy_attachment" "web-app-codebuild-policy-attachment" {

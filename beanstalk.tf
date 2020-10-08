@@ -3,7 +3,7 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
   application            = aws_elastic_beanstalk_application.web-app.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = "64bit Amazon Linux 2 v5.2.1 running Node.js 12"
+  solution_stack_name    = "64bit Amazon Linux 2 v5.2.2 running Node.js 12"
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
@@ -20,36 +20,43 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "InstanceType"
     value     = local.production ? "m4.large" : "t3.micro"
+    resource  = ""
   }
   setting {
     namespace = "aws:ec2:vpc"
     name      = "AssociatePublicIpAddress"
     value     = "true"
+    resource  = ""
   }
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "RootVolumeType"
     value     = "gp2"
+    resource  = ""
   }
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "EC2KeyName"
     value     = aws_key_pair.web-app-keypair.key_name
+    resource  = ""
   }
   setting {
     namespace = "aws:ec2:vpc"
     name      = "VPCId"
     value     = aws_vpc.web-app-vpc.id
+    resource  = ""
   }
   setting {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
     value     = aws_subnet.web-app-subnet.id
+    resource  = ""
   }
   setting {
     namespace = "aws:ec2:vpc"
     name      = "AssociatePublicIpAddress"
     value     = "false"
+    resource  = ""
   }
   setting {
     namespace = "aws:elasticbeanstalk:command"
@@ -103,11 +110,13 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
     namespace = "aws:autoscaling:asg"
     name      = "Cooldown"
     value     = "60"
+    resource  = ""
   }
   setting {
     namespace = "aws:autoscaling:asg"
     name      = "MinSize"
     value     = "1"
+    resource  = ""
   }
   setting {
     namespace = "aws:elasticbeanstalk:cloudwatch:logs"
@@ -119,71 +128,85 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
     namespace = "aws:autoscaling:asg"
     name      = "MaxSize"
     value     = local.production ? "15" : "5"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:loadbalancer"
     name      = "CrossZone"
     value     = "true"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:loadbalancer"
     name      = "SecurityGroups"
     value     = aws_security_group.web-app-elb-security-group.id
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener"
     name      = "ListenerProtocol"
     value     = "HTTP"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener"
     name      = "InstancePort"
     value     = "80"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener"
     name      = "ListenerEnabled"
     value     = "true"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener:443"
     name      = "ListenerProtocol"
     value     = "HTTPS"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener:443"
     name      = "InstanceProtocol"
     value     = "HTTP"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener:443"
     name      = "InstancePort"
     value     = "80"
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener:443"
     name      = "SSLCertificateId"
     value     = local.production ? var.ssl_production_acm_arn : var.ssl_staging_acm_arn
+    resource  = ""
   }
   setting {
     namespace = "aws:elb:listener:443"
     name      = "ListenerEnabled"
     value     = "true"
+    resource  = ""
   }
   setting {
-      namespace = "aws:elb:policies"
-      name      = "ConnectionDrainingEnabled"
-      value     = "true"
+    namespace = "aws:elb:policies"
+    name      = "ConnectionDrainingEnabled"
+    value     = "true"
+    resource  = ""
   }
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
     value     = aws_iam_instance_profile.web-app-ec2-instance-profile.name
+    resource  = ""
   }
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "ServiceRole"
     value     = aws_iam_role.web-app-service-role.name
+    resource  = ""
   }
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
@@ -199,6 +222,9 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
       value     = setting.value
       resource  = ""
     }
+  }
+  lifecycle {
+    ignore_changes = [setting]
   }
   tags = local.tags
 }
