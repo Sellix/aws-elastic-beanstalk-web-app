@@ -22,6 +22,6 @@ resource "aws_codestarnotifications_notification_rule" "web-app-codestarnotifica
     "codepipeline-pipeline-manual-approval-succeeded",
   ]
   target {
-    address = data.terraform_remote_state.web-app-chatbot.outputs.chatbot_arn
+    address = data.terraform_remote_state.web-app-chatbot-terraform-state.outputs.chatbot_arn
   }
 }
