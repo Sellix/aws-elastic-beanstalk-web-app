@@ -1,4 +1,4 @@
-data "terraform_remote_state" "web-app-chatbot" {
+data "terraform_remote_state" "web-app-chatbot-terraform-state" {
   backend = "s3"
   config = {
     bucket     = "sellix-deployments"
