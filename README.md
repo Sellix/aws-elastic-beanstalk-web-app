@@ -8,10 +8,17 @@ Repo related to the infrastructure with AWS Elastic Beanstalk for our web-app
 
 Replace `{environment}` with either `production` or `staging`
 
+
 `export ENV={environment}; envsubst < main.tf | tee main.tf`
-`terraform init -backend-config="access_key=" -backend-config="secret_key=" -backend-config="env={environment}"`
+`terraform init -backend-config="access_key=" -backend-config="secret_key="`
+`terraform workspace new {environment}`
+`terraform workspace select {environment}`
 
 `terraform apply`
+
+Switching Workspaces
+
+`terraform select {environment}`
 
 ## Branches
 

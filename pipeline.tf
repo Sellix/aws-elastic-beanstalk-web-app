@@ -1,9 +1,13 @@
-resource "aws_codepipeline" "web-app-codepipeline" {
-  name      = "sellix-web-app-${var.environment_check}-codepipeline"
-  role_arn  = aws_iam_role.web-app-codepipeline-role.arn
-  tags = local.tags
+resource "aws_codepipeline" "sellix-web-app-codepipeline" {
+  name      = "sellix-web-app-${terraform.workspace}-codepipeline"
+  role_arn  = aws_iam_role.sellix-web-app-codepipeline-role.arn
+  tags = {
+    "Name"  = "sellix-web-app-${terraform.workspace}-codepipeline"
+    "Project"     = "sellix-web-app-${terraform.workspace}"
+    "Environment" = terraform.workspace
+  }
   artifact_store {
-    location = aws_s3_bucket.web-app-codepipeline-s3-bucket.bucket
+    location = aws_s3_bucket.sellix-web-app-codepipeline-s3-bucket.bucket
     type     = "S3"
   }
   stage {
@@ -17,11 +21,11 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       output_artifacts = ["sellix-web-app-artifacts"]
 
       configuration = {
-        OAuthToken           = "${var.github_oauth}"
-        Owner                = "${var.github_org}"
-        Repo                 = "${var.github_repo}"
-        Branch               = local.production ? "master" : "staging"
-        PollForSourceChanges = true
+        OAuthToken           = var.github_oauth
+        Owner                = var.github_org
+        Repo                 = var.github_repo
+        Branch               = "development"
+        PollForSourceChanges = false
       }
     }
   }
@@ -36,7 +40,7 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       input_artifacts  = ["sellix-web-app-artifacts"]
       output_artifacts = ["sellix-web-app-codebuild-artifacts"]
       configuration = {
-        ProjectName = aws_codebuild_project.web-app.name
+        ProjectName = aws_codebuild_project.sellix-web-app.name
       }
     }
   }
@@ -50,17 +54,17 @@ resource "aws_codepipeline" "web-app-codepipeline" {
       input_artifacts  = ["sellix-web-app-codebuild-artifacts"]
       version          = "1"
       configuration = {
-        ApplicationName = aws_elastic_beanstalk_application.web-app.name
-        EnvironmentName = aws_elastic_beanstalk_environment.web-app-environment.name
+        ApplicationName = aws_elastic_beanstalk_application.sellix-web-app.name
+        EnvironmentName = aws_elastic_beanstalk_environment.sellix-web-app-environment.name
       }
     }
   }
 }
 
-resource "aws_codebuild_project" "web-app" {
-  name           = "sellix-web-app-${var.environment_check}-codebuild"
+resource "aws_codebuild_project" "sellix-web-app" {
+  name           = "sellix-web-app-${terraform.workspace}-codebuild"
   description    = "CodeBuild"
-  service_role = aws_iam_role.web-app-codebuild-role.arn
+  service_role = aws_iam_role.sellix-web-app-codebuild-role.arn
   artifacts {
     type = "CODEPIPELINE"
   }
@@ -74,5 +78,9 @@ resource "aws_codebuild_project" "web-app" {
   source {
     type = "CODEPIPELINE"
   }
-  tags = local.tags
+  tags = {
+    "Name"  = "sellix-web-app-${terraform.workspace}-codebuild-project"
+    "Project"     = "sellix-web-app-${terraform.workspace}"
+    "Environment" = terraform.workspace
+  }
 }

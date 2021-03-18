@@ -1,6 +1,6 @@
-resource "aws_key_pair" "web-app-keypair" {
-  key_name   = "sellix-web-app-${var.environment_check}-keypair"
-  public_key = file("${var.public_key_path}")
+resource "aws_key_pair" "sellix-web-app-keypair" {
+  key_name   = "sellix-web-app-${terraform.workspace}-keypair"
+  public_key = file(var.public_key_path)
   lifecycle {
     ignore_changes = [public_key]
   }
@@ -24,14 +24,9 @@ variable "main_cidr_block" {
   default     = "172.18.0.0/16"
 }
 
-variable "public_cidr_block" {
-  description = "public cidr"
-  default     = "172.18.1.0/24"
-}
-
 variable "github_oauth" {
   description = "GitHub OAUTH KEY"
-  default     = ""
+  default     = "566b2a734f54dc4f40e756105e57819e826261e0"
 }
 
 variable "github_org" {
@@ -42,15 +37,6 @@ variable "github_org" {
 variable "github_repo" {
   description = "GitHub Repo Name"
   default     = "web-app"
-}
-
-variable "environment_check" {
-  description = "staging or production"
-  type        = string
-  validation {
-    condition = var.environment_check == "production" || var.environment_check == "staging"
-    error_message = "Enviroment must be production or staging."
-  }
 }
 
 variable "ssl_production_acm_arn" {
