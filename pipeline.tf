@@ -1,3 +1,8 @@
+resource "aws_codestarconnections_connection" "sellix-web-app-github-connection" {
+  name          = "sellix-web-app-${terraform.workspace}-github-connection"
+  provider_type = "GitHub"
+}
+
 resource "aws_codepipeline" "sellix-web-app-codepipeline" {
   name      = "sellix-web-app-${terraform.workspace}-codepipeline"
   role_arn  = aws_iam_role.sellix-web-app-codepipeline-role.arn
@@ -15,17 +20,16 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
     action {
       name             = "Source"
       category         = "Source"
-      owner            = "ThirdParty"
-      provider         = "GitHub"
+      owner            = "AWS"
+      provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["sellix-web-app-artifacts"]
 
       configuration = {
-        OAuthToken           = var.github_oauth
-        Owner                = var.github_org
-        Repo                 = var.github_repo
-        Branch               = "development"
-        PollForSourceChanges = false
+        ConnectionArn         = aws_codestarconnections_connection.sellix-web-app-github-connection.arn
+        FullRepositoryId      = "${var.github_org}/${var.github_repo}"
+        BranchName            = "development"
+        PollForSourceChanges  = false
       }
     }
   }

@@ -24,11 +24,6 @@ variable "main_cidr_block" {
   default     = "172.18.0.0/16"
 }
 
-variable "github_oauth" {
-  description = "GitHub OAUTH KEY"
-  default     = "566b2a734f54dc4f40e756105e57819e826261e0"
-}
-
 variable "github_org" {
   description = "GitHub Organization/User"
   default     = "Sellix"

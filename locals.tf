@@ -8,6 +8,156 @@ locals {
   notification_topic_arn = {for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
     s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN"}
   availability_zones     = ["${var.aws_region}a", "${var.aws_region}b"]
+  vpc                    = [
+    {
+      namespace = "aws:ec2:vpc"
+      name      = "VPCId"
+      value     = aws_vpc.sellix-web-app-vpc.id
+    },
+    {
+      namespace = "aws:ec2:vpc"
+      name      = "ELBScheme"
+      value     = "public"
+    },
+    {
+      namespace = "aws:ec2:vpc"
+      name      = "Subnets"
+      value     = join(",", sort(aws_subnet.sellix-web-app-private-subnet.*.id))
+    },
+    {
+      namespace = "aws:ec2:vpc"
+      name      = "AssociatePublicIpAddress"
+      value     = "false"
+    }
+  ]
+  environment            = [
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "DeregistrationDelay"
+      value     = "20"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment"
+      name      = "EnvironmentType"
+      value     = "LoadBalanced"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment"
+      name      = "LoadBalancerType"
+      value     = "application"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment"
+      name      = "ServiceRole"
+      value     = aws_iam_role.sellix-web-app-service-role.name
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "HealthyThresholdCount"
+      value     = "3"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "Port"
+      value     = "80"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "Protocol"
+      value     = "HTTP"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "UnhealthyThresholdCount"
+      value     = "5"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "StickinessEnabled"
+      value     = "true"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "StickinessLBCookieDuration"
+      value     = "86400"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "StickinessType"
+      value     = "lb_cookie"
+    }
+  ]
+  cloudwatch             = [
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "DeleteOnTerminate"
+    value     = "false"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "RetentionInDays"
+    value     = "90"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "StreamLogs"
+    value     = "true"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+    name      = "DeleteOnTerminate"
+    value     = "false"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+    name      = "HealthStreamingEnabled"
+    value     = "false"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+    name      = "RetentionInDays"
+    value     = "7"
+    },
+  ]
+  healthcheck            = [
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "IgnoreHealthCheck"
+      value     = "false"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "HealthCheckInterval"
+    value     = "15"
+    },
+    {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "HealthCheckPath"
+    value     = "/"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "HealthCheckTimeout"
+      value     = "5"
+    },
+  ]
+  command                = [
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "BatchSize"
+      value     = "100"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "BatchSizeType"
+      value     = "Percentage"
+    },
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "Timeout"
+      value     = "600"
+    },
+  ]
   traffic_splitting      = local.production ? [
     {
       namespace = "aws:elasticbeanstalk:trafficsplitting"
@@ -115,13 +265,18 @@ locals {
     },
     {
       namespace = "aws:autoscaling:asg"
+      name      = "EnableCapacityRebalancing"
+      value     = "false"
+    },
+    {
+      namespace = "aws:autoscaling:asg"
       name      = "MinSize"
-      value     = "1"
+      value     = "2"
     },
     {
       namespace = "aws:autoscaling:asg"
       name      = "MaxSize"
-      value     = local.production ? "15" : "5"
+      value     = local.production ? "10" : "5"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"
@@ -129,9 +284,19 @@ locals {
       value     = local.production ? "Health" : "Immutable"
     },
     {
+      namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+      name      = "Timeout"
+      value     = "PT30M"
+    },
+    {
       namespace = "aws:autoscaling:trigger"
       name      = "MeasureName"
       value     = "CPUUtilization"
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "Statistic"
+      value     = "Average"
     },
     {
       namespace = "aws:autoscaling:trigger"
@@ -150,12 +315,27 @@ locals {
     },
     {
       namespace = "aws:autoscaling:trigger"
+      name      = "LowerBreachScaleIncrement"
+      value     = "-1"
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "UpperBreachScaleIncrement"
+      value     = "1"
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
       name      = "BreachDuration"
       value     = "1"
     },
     {
       namespace = "aws:autoscaling:trigger"
       name      = "Period"
+      value     = "1"
+    },
+    {
+      namespace = "aws:autoscaling:trigger"
+      name      = "EvaluationPeriods"
       value     = "1"
     }
   ]

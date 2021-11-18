@@ -25,7 +25,7 @@ resource "aws_eip" "sellix-web-app-eip" {
 }
 
 resource "aws_subnet" "sellix-web-app-public-subnet" {
-  count                   = length(local.availability_zones)
+  count                   = local.production ? length(local.availability_zones) : 1
   vpc_id                  = aws_vpc.sellix-web-app-vpc.id
   availability_zone       = element(local.availability_zones, count.index)
   cidr_block              = cidrsubnet(
@@ -42,7 +42,7 @@ resource "aws_subnet" "sellix-web-app-public-subnet" {
 }
 
 resource "aws_subnet" "sellix-web-app-private-subnet" {
-  count                   = length(local.availability_zones)
+  count                   = local.production ? length(local.availability_zones) : 1
   vpc_id                  = aws_vpc.sellix-web-app-vpc.id
   availability_zone       = element(local.availability_zones, count.index)
   cidr_block              = cidrsubnet(
@@ -118,13 +118,13 @@ resource "aws_route" "sellix-web-app-route" {
 }
 
 resource "aws_route_table_association" "sellix-web-app-public-route-table-association" {
-  count           = length(local.availability_zones)
+  count           = local.production ? length(local.availability_zones) : 1
   subnet_id       = element(aws_subnet.sellix-web-app-public-subnet.*.id, count.index)
   route_table_id  = aws_route_table.sellix-web-app-public-route-table.id
 }
 
 resource "aws_route_table_association" "sellix-web-app-private-route-table-association" {
-  count           = length(local.availability_zones)
+  count           = local.production ? length(local.availability_zones) : 1
   subnet_id       = element(aws_subnet.sellix-web-app-private-subnet.*.id, count.index)
   route_table_id  = local.production ? element(aws_route_table.sellix-web-app-private-route-table.*.id, count.index) : aws_route_table.sellix-web-app-private-route-table[0].id
 }

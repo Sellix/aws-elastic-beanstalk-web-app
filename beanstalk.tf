@@ -5,51 +5,39 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
   wait_for_ready_timeout = "20m"
   solution_stack_name    = "64bit Amazon Linux 2 v5.3.0 running Node.js 14"
   setting {
-    namespace = "aws:ec2:vpc"
-    name      = "VPCId"
-    value     = aws_vpc.sellix-web-app-vpc.id
+    namespace = "aws:elasticbeanstalk:monitoring"
+    name      = "Automatically Terminate Unhealthy Instances"
+    value     = "true"
     resource  = ""
   }
   setting {
-    namespace = "aws:ec2:vpc"
-    name      = "Subnets"
-    value     = join(",", sort(aws_subnet.sellix-web-app-private-subnet.*.id))
+    namespace = "aws:ec2:instances"
+    name      = "SpotFleetOnDemandAboveBasePercentage"
+    value     = "70"
     resource  = ""
   }
   setting {
-    namespace = "aws:ec2:vpc"
-    name      = "AssociatePublicIpAddress"
+    namespace = "aws:ec2:instances"
+    name      = "SpotFleetOnDemandBase"
+    value     = "0"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "SystemType"
+    value     = "enhanced"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "EnhancedHealthAuthEnabled"
     value     = "false"
     resource  = ""
   }
   setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "EnvironmentType"
-    value     = "LoadBalanced"
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "ServiceRole"
-    value     = aws_iam_role.sellix-web-app-service-role.name
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "LoadBalancerType"
-    value     = "application"
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-    name      = "RetentionInDays"
-    value     = "90"
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-    name      = "StreamLogs"
-    value     = "true"
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "HealthCheckSuccessThreshold"
+    value     = "Ok"
     resource  = ""
   }
   setting {
@@ -81,29 +69,19 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
       resource  = ""
     }
   }
-  # traffic splitting
+
   dynamic "setting" {
-    for_each = local.traffic_splitting
-    content {
-      namespace = setting.value["namespace"]
-      name      = setting.value["name"]
-      value     = setting.value["value"]
-      resource  = ""
-    }
-  }
-  # alb
-  dynamic "setting" {
-    for_each = concat(local.generic_elb, local.alb)
-    content {
-      namespace = setting.value["namespace"]
-      name      = setting.value["name"]
-      value     = setting.value["value"]
-      resource  = ""
-    }
-  }
-  # autoscaling
-  dynamic "setting" {
-    for_each = concat(local.autoscaling_launch_config, local.autoscaling)
+    for_each = concat(local.vpc,
+      local.environment,
+      local.cloudwatch,
+      local.healthcheck,
+      local.command,
+      local.traffic_splitting,
+      local.generic_elb,
+      local.alb,
+      local.autoscaling_launch_config,
+      local.autoscaling
+    )
     content {
       namespace = setting.value["namespace"]
       name      = setting.value["name"]
