@@ -1,29 +1,29 @@
 # elastic-beanstalk-web-app
 
+![](https://img.shields.io/badge/Sellix-AWS-orange) ![](https://img.shields.io/badge/Version-v2.0.0-blueviolet)
+
+<p align="center">
+  <img src="https://cdn.sellix.io//static/github/aws-elastic-beanstalk-infrastructure.png" alt="Sellix Web App Infrastructure Schema"/>
+</p>
+
 ## Description
 
-Repo related to the infrastructure with AWS Elastic Beanstalk for our web-app
+AWS Elastic Beanstalk infrastructure for Sellix's [web-app](https://sellix.io), in Terraform.
 
-## Setup
+## Deployment
 
-Replace `{environment}` with either `production` or `staging`
-
+### Apply
 
 `export ENV={environment}; envsubst < main.tf | tee main.tf`
+
 `terraform init -backend-config="access_key=" -backend-config="secret_key="`
+
 `terraform workspace new {environment}`
+
 `terraform workspace select {environment}`
 
 `terraform apply`
 
-Switching Workspaces
+### Switch Workspaces
 
 `terraform select {environment}`
-
-## Branches
-
-- `master`: production beanstalk.
-
-- `staging`: staging beanstalk, needs less resources and ec2 than `master`.
-
-- `legacy`: branch for the old web app for test purposes, follows `staging`'s requirements.
