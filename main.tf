@@ -16,7 +16,7 @@ terraform {
     region         = "eu-west-1"
     encrypt        = true
     dynamodb_table = "sellix-deployments"
-    key            = "elastic-beanstalk-web-app.tfstate"
+    key            = "elastic-beanstalk-web-app-production.tfstate"
   }
 }
 

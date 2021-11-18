@@ -1,72 +1,67 @@
-resource "aws_elastic_beanstalk_environment" "web-app-environment" {
-  name                   = "sellix-web-app-production"
-  application            = aws_elastic_beanstalk_application.web-app.name
+resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
+  name                   = "sellix-web-app-${terraform.workspace}"
+  application            = aws_elastic_beanstalk_application.sellix-web-app.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = "64bit Amazon Linux 2 v5.2.1 running Node.js 12"
+  solution_stack_name    = "64bit Amazon Linux 2 v5.3.0 running Node.js 14"
   setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "InstanceType"
-    value     = "t2.medium"
-  }
-  setting {
-    namespace = "aws:ec2:vpc"
-    name      = "AssociatePublicIpAddress"
+    namespace = "aws:elasticbeanstalk:monitoring"
+    name      = "Automatically Terminate Unhealthy Instances"
     value     = "true"
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "RootVolumeType"
-    value     = "gp2"
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "EC2KeyName"
-    value     = aws_key_pair.web-app-keypair.key_name
-  }
-  setting {
-    namespace = "aws:ec2:vpc"
-    name      = "VPCId"
-    value     = aws_vpc.web-app-vpc.id
-  }
-  setting {
-    namespace = "aws:ec2:vpc"
-    name      = "Subnets"
-    value     = aws_subnet.web-app-subnet.id
-  }
-  setting {
-    namespace = "aws:ec2:vpc"
-    name      = "AssociatePublicIpAddress"
-    value     = "false"
-  }
-  setting {
-    namespace = "aws:autoscaling:asg"
-    name      = "MinSize"
-    value     = "1"
-  }
-  setting {
-    namespace = "aws:autoscaling:asg"
-    name      = "MaxSize"
-    value     = "15"
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "IamInstanceProfile"
-    value     = aws_iam_instance_profile.web-app-ec2-instance-profile.name
-  }
-  setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "ServiceRole"
-    value     = aws_iam_role.web-app-service-role.name
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "SecurityGroups"
-    value     = aws_security_group.web-app-security-group.id
     resource  = ""
   }
+  setting {
+    namespace = "aws:ec2:instances"
+    name      = "SpotFleetOnDemandAboveBasePercentage"
+    value     = "70"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:ec2:instances"
+    name      = "SpotFleetOnDemandBase"
+    value     = "0"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "SystemType"
+    value     = "enhanced"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "EnhancedHealthAuthEnabled"
+    value     = "false"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "HealthCheckSuccessThreshold"
+    value     = "Ok"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:sns:topics"
+    name      = "Notification Endpoint"
+    value     = "alarms@sellix.io"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:sns:topics"
+    name      = "Notification Protocol"
+    value     = "email"
+    resource  = ""
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:hostmanager"
+    name      = "LogPublicationControl"
+    value     = "true"
+    resource  = ""
+  }
+
+  # environment
   dynamic "setting" {
-    for_each = var.env_vars
+    for_each = local.env
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key
@@ -74,17 +69,32 @@ resource "aws_elastic_beanstalk_environment" "web-app-environment" {
       resource  = ""
     }
   }
+
+  dynamic "setting" {
+    for_each = concat(local.vpc,
+      local.environment,
+      local.cloudwatch,
+      local.healthcheck,
+      local.command,
+      local.traffic_splitting,
+      local.generic_elb,
+      local.alb,
+      local.autoscaling_launch_config,
+      local.autoscaling
+    )
+    content {
+      namespace = setting.value["namespace"]
+      name      = setting.value["name"]
+      value     = setting.value["value"]
+      resource  = ""
+    }
+  }
+  tags = {
+    "Project" = "sellix-web-app-${terraform.workspace}"
+  }
 }
 
-resource "aws_elastic_beanstalk_application" "web-app" {
-  name        = "sellix-web-app"
+resource "aws_elastic_beanstalk_application" "sellix-web-app" {
+  name        = "sellix-web-app-${terraform.workspace}"
   description = "NodeJS Web Application"
-}
-
-resource "aws_elastic_beanstalk_application_version" "web-app-version" {
-  name        = "sellix-web-app-version"
-  application = aws_elastic_beanstalk_application.web-app.name
-  description = "application version created by terraform"
-  bucket      = "sellix-elastic-beanstalk-hello-world"
-  key         = "hello-world.zip"
 }
