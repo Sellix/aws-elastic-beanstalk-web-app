@@ -23,7 +23,7 @@ terraform {
 
 provider "aws" {
   profile    = "sellix-terraform"
-  region     = var.aws_region
+  region     = local.aws_region
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }

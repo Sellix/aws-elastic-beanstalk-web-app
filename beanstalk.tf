@@ -91,7 +91,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
     }
   }
   tags = merge({
-      "Name" = local.tags["Project"]
+    "Name" = local.tags["Project"]
     },
     local.tags
   )

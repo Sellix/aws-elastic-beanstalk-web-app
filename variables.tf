@@ -14,10 +14,6 @@ variable "aws_secret_key" {
   default = null
 }
 
-variable "aws_region" {
-  default = "eu-west-1"
-}
-
 variable "public_key_path" {
   description = "ssh key"
   default     = "~/.ssh/id_rsa.pub"

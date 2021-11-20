@@ -1,18 +1,25 @@
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 locals {
-  tags                      = {
-    "Project"     = "sellix-web-app-v2-${terraform.workspace}"
-    "Environment" = terraform.workspace
+  workspace_infos = split("$", terraform.workspace)
+  aws_region      = local.workspace_infos[1]
+  workspace       = local.workspace_infos[0]
+  tags = {
+    "Project"     = "sellix-web-app-v2-${local.workspace}"
+    "Environment" = local.workspace
   }
-  env                       = {
-    ELASTIC_BEANSTALK_PORT  = 8080
-    DOMAIN                  = local.production ? "sellix.io" : "sellix.gg"
-    ENVIRONMENT             = local.production ? "production" : "staging"
+  env = {
+    ELASTIC_BEANSTALK_PORT = 8080
+    DOMAIN                 = local.production ? "sellix.io" : "sellix.gg"
+    ENVIRONMENT            = local.production ? "production" : "staging"
   }
-  production                = contains(["prod"], substr(terraform.workspace, 0, 4)) ? true : false
-  notification_topic_arn    = {for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
-    s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN"}
-  availability_zones        = ["${var.aws_region}a", "${var.aws_region}b"]
-  vpc                       = [
+  production = contains(["prod"], substr(local.workspace, 0, 4)) ? true : false
+  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
+  s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }
+  availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
+  vpc = [
     {
       namespace = "aws:ec2:vpc"
       name      = "VPCId"
@@ -34,7 +41,7 @@ locals {
       value     = "false"
     }
   ]
-  environment               = [
+  environment = [
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
       name      = "DeregistrationDelay"
@@ -91,7 +98,7 @@ locals {
       value     = "lb_cookie"
     }
   ]
-  cloudwatch                = [
+  cloudwatch = [
     {
       namespace = "aws:elasticbeanstalk:cloudwatch:logs"
       name      = "DeleteOnTerminate"
@@ -123,7 +130,7 @@ locals {
       value     = "7"
     },
   ]
-  healthcheck               = [
+  healthcheck = [
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "IgnoreHealthCheck"
@@ -145,7 +152,7 @@ locals {
       value     = "5"
     },
   ]
-  command                   = [
+  command = [
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "BatchSize"
@@ -162,7 +169,7 @@ locals {
       value     = "600"
     },
   ]
-  traffic_splitting         = local.production ? [
+  traffic_splitting = local.production ? [
     {
       namespace = "aws:elasticbeanstalk:trafficsplitting"
       name      = "EvaluationTime"
@@ -178,21 +185,21 @@ locals {
       name      = "DeploymentPolicy"
       value     = "TrafficSplitting"
     }
-  ] : [
-        {
-          namespace = "aws:elasticbeanstalk:command"
-          name      = "DeploymentPolicy"
-          value     = "Immutable"
-        }
+    ] : [
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "DeploymentPolicy"
+      value     = "Immutable"
+    }
   ]
-  generic_elb               = [
+  generic_elb = [
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBSubnets"
       value     = join(",", sort(aws_subnet.sellix-web-app-public-subnet.*.id))
     }
   ]
-  alb                       = [
+  alb = [
     {
       namespace = "aws:elbv2:loadbalancer"
       name      = "SecurityGroups"
@@ -211,7 +218,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = local.production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
+      value     = local.production ? var.ssl_arn[local.aws_region]["production"] : var.ssl_arn[local.aws_region]["staging"]
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -261,7 +268,7 @@ locals {
       value     = "1 minute"
     }
   ]
-  autoscaling               = [
+  autoscaling = [
     {
       namespace = "aws:autoscaling:asg"
       name      = "Cooldown"

@@ -1,8 +1,8 @@
 resource "aws_codepipeline" "sellix-web-app-codepipeline" {
-  name      = "${local.tags["Project"]}-codepipeline"
-  role_arn  = aws_iam_role.sellix-web-app-codepipeline-role.arn
-  tags      = merge({
-      "Name"  = "${local.tags["Project"]}-codepipeline"
+  name     = "${local.tags["Project"]}-codepipeline"
+  role_arn = aws_iam_role.sellix-web-app-codepipeline-role.arn
+  tags = merge({
+    "Name" = "${local.tags["Project"]}-codepipeline"
     },
     local.tags
   )
@@ -19,11 +19,11 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
       provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["sellix-web-app-artifacts"]
-      configuration    = {
-        ConnectionArn         = var.codestar_connection_arn
-        FullRepositoryId      = "${var.github_opts["org"]}/${var.github_opts["repo"]}"
-        BranchName            = var.github_opts["branch"]
-        DetectChanges  = false
+      configuration = {
+        ConnectionArn        = var.codestar_connection_arn
+        FullRepositoryId     = "${var.github_opts["org"]}/${var.github_opts["repo"]}"
+        BranchName           = var.github_opts["branch"]
+        DetectChanges        = false
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
     }
@@ -38,7 +38,7 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
       version          = "1"
       input_artifacts  = ["sellix-web-app-artifacts"]
       output_artifacts = ["sellix-web-app-codebuild-artifacts"]
-      configuration    = {
+      configuration = {
         ProjectName = aws_codebuild_project.sellix-web-app.name
       }
     }
@@ -46,13 +46,13 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
   stage {
     name = "Deploy"
     action {
-      category         = "Deploy"
-      name             = "Deploy"
-      owner            = "AWS"
-      provider         = "ElasticBeanstalk"
-      input_artifacts  = ["sellix-web-app-codebuild-artifacts"]
-      version          = "1"
-      configuration    = {
+      category        = "Deploy"
+      name            = "Deploy"
+      owner           = "AWS"
+      provider        = "ElasticBeanstalk"
+      input_artifacts = ["sellix-web-app-codebuild-artifacts"]
+      version         = "1"
+      configuration = {
         ApplicationName = aws_elastic_beanstalk_application.sellix-web-app.name
         EnvironmentName = aws_elastic_beanstalk_environment.sellix-web-app-environment.name
       }
@@ -61,9 +61,9 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
 }
 
 resource "aws_codebuild_project" "sellix-web-app" {
-  name           = "${local.tags["Project"]}-codebuild"
-  description    = "CodeBuild"
-  service_role   = aws_iam_role.sellix-web-app-codebuild-role.arn
+  name         = "${local.tags["Project"]}-codebuild"
+  description  = "CodeBuild"
+  service_role = aws_iam_role.sellix-web-app-codebuild-role.arn
   artifacts {
     type = "CODEPIPELINE"
   }
@@ -78,7 +78,7 @@ resource "aws_codebuild_project" "sellix-web-app" {
     type = "CODEPIPELINE"
   }
   tags = merge({
-    "Name"  = "${local.tags["Project"]}-codebuild-project"
+    "Name" = "${local.tags["Project"]}-codebuild-project"
     },
     local.tags
   )
