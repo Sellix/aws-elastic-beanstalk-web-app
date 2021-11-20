@@ -12,6 +12,7 @@ terraform {
     }
   }
   backend "s3" {
+    profile        = "sellix-terraform"
     bucket         = "sellix-deployments"
     region         = "eu-west-1"
     encrypt        = true
