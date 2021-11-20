@@ -14,16 +14,25 @@ AWS Elastic Beanstalk infrastructure for Sellix's [web-app](https://sellix.io), 
 
 ### Apply
 
-`export ENV={environment}; envsubst < main.tf | tee main.tf`
+Initialize Environment
 
-`terraform init -backend-config="access_key=" -backend-config="secret_key="`
+`export ENV={environment}`
 
-`terraform workspace new {environment}`
+AWS IAM (optional, see main.tf)
+```
+export AWS_ACCESS_KEY=""
+export AWS_SECRET_KEY=""
+```
 
-`terraform workspace select {environment}`
+Terraform Apply
 
-`terraform apply`
+```
+terraform init
+terraform workspace new $ENV
+terraform workspace select $ENV
+terraform apply
+```
 
 ### Switch Workspaces
 
-`terraform select {environment}`
+`terraform select $ENV`

@@ -1,14 +1,18 @@
 resource "aws_key_pair" "sellix-web-app-keypair" {
-  key_name   = "sellix-web-app-${terraform.workspace}-keypair"
+  key_name   = "${local.tags["Project"]}-keypair"
   public_key = file(var.public_key_path)
   lifecycle {
     ignore_changes = [public_key]
   }
 }
 
-variable "aws_access_key" {}
+variable "aws_access_key" {
+  default = null
+}
 
-variable "aws_secret_key" {}
+variable "aws_secret_key" {
+  default = null
+}
 
 variable "aws_region" {
   default = "eu-west-1"
@@ -24,22 +28,17 @@ variable "main_cidr_block" {
   default     = "172.18.0.0/16"
 }
 
-variable "github_org" {
-  description = "GitHub Organization/User"
-  default     = "Sellix"
+variable "github_opts" {
+  description = "GitHub Repo Name && Organization"
+  default     = {}
 }
 
-variable "github_repo" {
-  description = "GitHub Repo Name"
-  default     = "web-app"
-}
-
-variable "ssl_production_acm_arn" {
+variable "ssl_arn" {
   description = "SSL Certificate ARN"
-  default     = "arn:aws:acm:eu-west-1:671586216466:certificate/3bec7765-1c9a-4277-af3e-0aaa6283a3ed"
+  default     = {}
 }
 
-variable "ssl_staging_acm_arn" {
-  description = "SSL Certificate ARN"
-  default     = "arn:aws:acm:eu-west-1:671586216466:certificate/8e8d23d4-1c61-4d30-bfdd-6cb9b45e4c0a"
+variable "codestar_connection_arn" {
+  description = "CodeStar Connection ARN"
+  default     = null
 }

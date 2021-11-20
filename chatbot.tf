@@ -1,16 +1,16 @@
 data "terraform_remote_state" "sellix-web-app-chatbot-terraform-state" {
   backend = "s3"
-  config = {
+  config  = {
     bucket     = "sellix-deployments"
     key        = "aws-chatbot.tfstate"
-    region     = var.aws_region
+    region     = "eu-west-1"
     access_key = var.aws_access_key
     secret_key = var.aws_secret_key
   }
 }
 
 resource "aws_codestarnotifications_notification_rule" "sellix-web-app-codestarnotifications" {
-  name           = "sellix-web-app-${terraform.workspace}-chatbot"
+  name           = "${local.tags["Project"]}-chatbot"
   detail_type    = "BASIC"
   resource       = aws_codepipeline.sellix-web-app-codepipeline.arn
   status         = "ENABLED"

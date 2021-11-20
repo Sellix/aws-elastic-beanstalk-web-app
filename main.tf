@@ -5,7 +5,7 @@ terraform {
       "source" = "hashicorp/aws"
     }
     github = {
-      source = "hashicorp/github"
+      source = "integrations/github"
     }
     random = {
       source = "hashicorp/random"
@@ -16,11 +16,12 @@ terraform {
     region         = "eu-west-1"
     encrypt        = true
     dynamodb_table = "sellix-deployments"
-    key            = "elastic-beanstalk-web-app-production.tfstate"
+    key            = "eb-web-app.tfstate"
   }
 }
 
 provider "aws" {
+  profile    = "sellix-terraform"
   region     = var.aws_region
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key

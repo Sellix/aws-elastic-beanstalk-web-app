@@ -1,7 +1,7 @@
 data "aws_iam_policy_document" "sellix-web-app-default-policy-document" {
   statement {
-    sid = ""
-    actions = [
+    sid       = ""
+    actions   = [
       "elasticbeanstalk:*",
       "ec2:*",
       "elasticloadbalancing:*",
@@ -23,18 +23,18 @@ data "aws_iam_policy_document" "sellix-web-app-default-policy-document" {
 
 data "aws_iam_policy_document" "sellix-web-app-elb-policy-document" {
   statement {
-    sid = ""
-    actions = [
+    sid       = ""
+    actions   = [
       "s3:PutObject",
     ]
     resources = [
-      "arn:aws:s3:::sellix-web-app-${terraform.workspace}-elb-logs/*"
+      "arn:aws:s3:::${local.tags["Project"]}-${var.aws_region}-elb-logs/*"
     ]
     principals {
       type        = "AWS"
       identifiers = [join("", data.aws_elb_service_account.sellix-web-app-elb-service.*.arn)]
     }
-    effect = "Allow"
+    effect    = "Allow"
   }
 }
 
@@ -47,14 +47,14 @@ data "aws_iam_policy_document" "sellix-web-app-service-policy-document" {
       type        = "Service"
       identifiers = ["elasticbeanstalk.amazonaws.com", "codepipeline.amazonaws.com"]
     }
-    effect = "Allow"
+    effect  = "Allow"
   }
 }
 
 data "aws_iam_policy_document" "sellix-web-app-service-sns-policy-document" {
   statement {
-    sid     = ""
-    actions = [
+    sid       = ""
+    actions   = [
       "sns:Publish"
     ]
     resources = [
@@ -67,7 +67,7 @@ data "aws_iam_policy_document" "sellix-web-app-service-sns-policy-document" {
 
 data "aws_iam_policy_document" "sellix-web-app-ec2-policy-document" {
   statement {
-    sid = ""
+    sid     = ""
     actions = [
       "sts:AssumeRole",
     ]
@@ -75,10 +75,10 @@ data "aws_iam_policy_document" "sellix-web-app-ec2-policy-document" {
       type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
     }
-    effect = "Allow"
+    effect  = "Allow"
   }
   statement {
-    sid = ""
+    sid     = ""
     actions = [
       "sts:AssumeRole",
     ]
@@ -86,15 +86,15 @@ data "aws_iam_policy_document" "sellix-web-app-ec2-policy-document" {
       type        = "Service"
       identifiers = ["ssm.amazonaws.com"]
     }
-    effect = "Allow"
+    effect  = "Allow"
   }
 }
 
 data "aws_iam_policy_document" "sellix-web-app-codebuild-policy-document" {
   statement {
-    sid    = "AllowS3"
-    effect = "Allow"
-    actions = [
+    sid       = "AllowS3"
+    effect    = "Allow"
+    actions   = [
       "s3:PutObject",
       "s3:GetObject",
       "s3:GetObjectVersion",
@@ -108,15 +108,28 @@ data "aws_iam_policy_document" "sellix-web-app-codebuild-policy-document" {
   }
 }
 
+data "aws_iam_policy_document" "sellix-web-app-codebuild-codestar-connection-policy-document" {
+  statement {
+    sid       = ""
+    effect    = "Allow"
+    actions   = [
+      "codestar-connections:UseConnection"
+    ]
+    resources = [
+      var.codestar_connection_arn
+    ]
+  }
+}
+
 data "aws_iam_policy_document" "sellix-web-app-codebuild-assumerole-policy-document" {
   statement {
-    sid    = "AllowCodeBuildAssumeRole"
-    effect = "Allow"
+    sid     = "AllowCodeBuildAssumeRole"
+    effect  = "Allow"
     actions = [
       "sts:AssumeRole",
     ]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = [
         "codebuild.amazonaws.com",
       ]
@@ -126,8 +139,8 @@ data "aws_iam_policy_document" "sellix-web-app-codebuild-assumerole-policy-docum
 
 data "aws_iam_policy_document" "sellix-web-app-codebuild-permissions-policy-document" {
   statement {
-    sid = ""
-    actions = [
+    sid       = ""
+    actions   = [
       "codecommit:GitPull",
       "ecr:BatchCheckLayerAvailability",
       "ecr:CompleteLayerUpload",
@@ -143,7 +156,7 @@ data "aws_iam_policy_document" "sellix-web-app-codebuild-permissions-policy-docu
       "ssm:GetParameters",
       "secretsmanager:GetSecretValue",
     ]
-    effect = "Allow"
+    effect    = "Allow"
     resources = [
       "*",
     ]
@@ -155,27 +168,27 @@ data "aws_elb_service_account" "sellix-web-app-elb-service" {
 }
 
 resource "aws_iam_role" "sellix-web-app-codepipeline-role" {
-  name               = "sellix-web-app-${terraform.workspace}-codepipeline-role"
+  name               = "${local.tags["Project"]}-codepipeline-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-service-role" {
-  name               = "sellix-web-app-${terraform.workspace}-service-role"
+  name               = "${local.tags["Project"]}-service-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-ec2-role" {
-  name               = "sellix-web-app-${terraform.workspace}-ec2-role"
+  name               = "${local.tags["Project"]}-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-ec2-policy-document.json
 }
 
 resource "aws_iam_instance_profile" "sellix-web-app-ec2-instance-profile" {
-  name = "sellix-web-app-${terraform.workspace}-ec2-instance-profile"
+  name = "${local.tags["Project"]}-ec2-instance-profile"
   role = aws_iam_role.sellix-web-app-ec2-role.name
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-codepipeline-policy" {
-  name = "sellix-web-app-${terraform.workspace}-codepipeline-policy"
+  name = "${local.tags["Project"]}-codepipeline-policy"
   role = aws_iam_role.sellix-web-app-codepipeline-role.id
   policy = <<EOF
 {
@@ -201,6 +214,15 @@ resource "aws_iam_role_policy" "sellix-web-app-codepipeline-policy" {
         "codebuild:StartBuild"
       ],
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codestar-connections:*"
+      ],
+      "Resource": [
+        "${var.codestar_connection_arn}"
+      ]
     }
   ]
 }
@@ -208,32 +230,38 @@ EOF
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-service-sns-policy" {
-  name   = "sellix-web-app-${terraform.workspace}-service-sns-policy"
+  name   = "${local.tags["Project"]}-service-sns-policy"
   role   = aws_iam_role.sellix-web-app-service-role.id
   policy = data.aws_iam_policy_document.sellix-web-app-service-sns-policy-document.json
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-default-policy" {
-  name   = "sellix-web-app-${terraform.workspace}-default-policy"
+  name   = "${local.tags["Project"]}-default-policy"
   role   = aws_iam_role.sellix-web-app-ec2-role.id
   policy = data.aws_iam_policy_document.sellix-web-app-default-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-codebuild-role" {
-  name               = "sellix-web-app-${terraform.workspace}-codebuild-role"
+  name               = "${local.tags["Project"]}-codebuild-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-codebuild-assumerole-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-web-app-codebuild-permissions-policy" {
-  name   = "sellix-web-app-${terraform.workspace}-codebuild-permissions-policy"
+  name   = "${local.tags["Project"]}-codebuild-permissions-policy"
   path   = "/service-role/"
   policy = data.aws_iam_policy_document.sellix-web-app-codebuild-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-web-app-codebuild-policy" {
-  name        = "sellix-web-app-${terraform.workspace}-codebuild-policy"
+  name        = "${local.tags["Project"]}-codebuild-policy"
   description = "CodeBuild access policy"
   policy      = data.aws_iam_policy_document.sellix-web-app-codebuild-policy-document.json
+}
+
+resource "aws_iam_policy" "sellix-web-app-codebuild-codestar-connection-policy" {
+  name        = "${local.tags["Project"]}-codebuild-codestar-connection-policy"
+  description = "CodeBuild CodeStar Connection policy"
+  policy      = data.aws_iam_policy_document.sellix-web-app-codebuild-codestar-connection-policy-document.json
 }
 
 resource "aws_iam_role_policy_attachment" "sellix-web-app-codepipeline-policy-attachment" {
@@ -285,6 +313,11 @@ resource "aws_iam_role_policy_attachment" "sellix-web-app-ssm-automation-policy-
 resource "aws_iam_role_policy_attachment" "sellix-web-app-codebuild-policy-attachment" {
   role       = aws_iam_role.sellix-web-app-codebuild-role.name
   policy_arn = aws_iam_policy.sellix-web-app-codebuild-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sellix-web-app-codebuild-codestar-connection-policy-attachment" {
+  role       = aws_iam_role.sellix-web-app-codebuild-role.name
+  policy_arn = aws_iam_policy.sellix-web-app-codebuild-codestar-connection-policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "sellix-web-app-codebuild-permissions-policy-attachment" {

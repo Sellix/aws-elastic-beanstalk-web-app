@@ -1,9 +1,9 @@
 resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
-  name                   = "sellix-web-app-${terraform.workspace}"
+  name                   = local.tags["Project"]
   application            = aws_elastic_beanstalk_application.sellix-web-app.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = "64bit Amazon Linux 2 v5.3.0 running Node.js 14"
+  solution_stack_name    = "64bit Amazon Linux 2 v5.4.8 running Node.js 12"
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"
@@ -71,7 +71,8 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
   }
 
   dynamic "setting" {
-    for_each = concat(local.vpc,
+    for_each = concat(
+      local.vpc,
       local.environment,
       local.cloudwatch,
       local.healthcheck,
@@ -89,12 +90,14 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
       resource  = ""
     }
   }
-  tags = {
-    "Project" = "sellix-web-app-${terraform.workspace}"
-  }
+  tags = merge({
+      "Name" = local.tags["Project"]
+    },
+    local.tags
+  )
 }
 
 resource "aws_elastic_beanstalk_application" "sellix-web-app" {
-  name        = "sellix-web-app-${terraform.workspace}"
+  name        = local.tags["Project"]
   description = "NodeJS Web Application"
 }

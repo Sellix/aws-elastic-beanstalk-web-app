@@ -4,21 +4,21 @@ resource "aws_vpc" "sellix-web-app-vpc" {
   enable_dns_support    = "true"
   enable_dns_hostnames  = "true"
   enable_classiclink    = "false"
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-vpc"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+    "Name"  = "${local.tags["Project"]}-vpc"
+    },
+    local.tags
+  )
 }
 
 resource "aws_eip" "sellix-web-app-eip" {
   count             = local.production ? length(local.availability_zones) : 1
   vpc               = "true"
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-eip-${element(local.availability_zones, count.index)}"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-eip-${element(local.availability_zones, count.index)}"
+    },
+    local.tags
+  )
   lifecycle {
     create_before_destroy = "true"
   }
@@ -34,11 +34,11 @@ resource "aws_subnet" "sellix-web-app-public-subnet" {
     count.index
   )
   map_public_ip_on_launch = "true"
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-public-subnet-${element(local.availability_zones, count.index)}"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
+    },
+    local.tags
+  )
 }
 
 resource "aws_subnet" "sellix-web-app-private-subnet" {
@@ -51,22 +51,22 @@ resource "aws_subnet" "sellix-web-app-private-subnet" {
     length(local.availability_zones) + count.index
   )
   map_public_ip_on_launch = "false"
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-private-subnet-${element(local.availability_zones, count.index)}"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
+    },
+    local.tags
+  )
 }
 
 resource "aws_nat_gateway" "sellix-web-app-nat-gateway" {
   count         = local.production ? length(local.availability_zones) : 1
   allocation_id = element(aws_eip.sellix-web-app-eip.*.id, count.index)
   subnet_id     = element(aws_subnet.sellix-web-app-public-subnet.*.id, count.index)
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-nat-gateway-${element(local.availability_zones, count.index)}"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-nat-gateway-${element(local.availability_zones, count.index)}"
+    },
+    local.tags
+  )
   lifecycle {
     create_before_destroy = "true"
   }
@@ -74,11 +74,11 @@ resource "aws_nat_gateway" "sellix-web-app-nat-gateway" {
 
 resource "aws_internet_gateway" "sellix-web-app-internet-gateway" {
   vpc_id  = aws_vpc.sellix-web-app-vpc.id
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-internet-gateway"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-internet-gateway"
+    },
+    local.tags
+  )
 }
 
 resource "aws_route_table" "sellix-web-app-public-route-table" {
@@ -87,11 +87,11 @@ resource "aws_route_table" "sellix-web-app-public-route-table" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.sellix-web-app-internet-gateway.id
   }
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-public-route-table"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+    "Name"  = "${local.tags["Project"]}-public-route-table"
+    },
+    local.tags
+  )
 }
 
 resource "aws_route_table" "sellix-web-app-private-route-table" {
@@ -104,11 +104,11 @@ resource "aws_route_table" "sellix-web-app-private-route-table" {
   lifecycle {
     create_before_destroy = "true"
   }
-  tags = {
-    "Name"  = "sellix-web-app-${terraform.workspace}-private-route-table-${element(local.availability_zones, count.index)}"
-    "Project"     = "sellix-web-app-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  tags = merge({
+      "Name"  = "${local.tags["Project"]}-private-route-table-${element(local.availability_zones, count.index)}"
+    },
+    local.tags
+  )
 }
 
 resource "aws_route" "sellix-web-app-route" {
