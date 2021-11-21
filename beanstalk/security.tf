@@ -14,7 +14,7 @@ resource "aws_security_group" "sellix-web-app-security-group" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = ["0.0.0.0/0"] # rlly needed?
+    cidr_blocks = ["0.0.0.0/0"]
   }
   tags = merge({
     "Name" = "${local.tags["Project"]}-security-group"

@@ -1,9 +1,16 @@
+data "aws_elastic_beanstalk_solution_stack" "nodejs" {
+  most_recent = true
+
+  name_regex = "^64bit Amazon Linux (.*) running Node.js ${var.nodejs_version != null ?
+  var.nodejs_version : "(.*)"}$"
+}
+
 resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
   name                   = local.tags["Project"]
   application            = aws_elastic_beanstalk_application.sellix-web-app.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = "64bit Amazon Linux 2 v5.4.8 running Node.js 12"
+  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs.name
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"

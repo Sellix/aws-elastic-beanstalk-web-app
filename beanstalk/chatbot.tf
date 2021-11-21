@@ -11,7 +11,7 @@ data "terraform_remote_state" "sellix-web-app-chatbot-terraform-state" {
 }
 
 resource "aws_codestarnotifications_notification_rule" "sellix-web-app-codestarnotifications" {
-  name        = "${local.tags["Project"]}-${local.aws_region}-chatbot"
+  name        = "${local.tags["Project"]}-${var.aws_region}-chatbot"
   detail_type = "BASIC"
   resource    = aws_codepipeline.sellix-web-app-codepipeline.arn
   status      = "ENABLED"

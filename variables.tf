@@ -1,11 +1,3 @@
-resource "aws_key_pair" "sellix-web-app-keypair" {
-  key_name   = "${local.tags["Project"]}-keypair"
-  public_key = file(var.public_key_path)
-  lifecycle {
-    ignore_changes = [public_key]
-  }
-}
-
 variable "aws_access_key" {
   default = null
 }
@@ -14,9 +6,9 @@ variable "aws_secret_key" {
   default = null
 }
 
-variable "public_key_path" {
-  description = "ssh key"
-  default     = "~/.ssh/id_rsa.pub"
+variable "nodejs_version" {
+  description = "Beanstalk Node.js Version"
+  default     = null
 }
 
 variable "main_cidr_block" {

@@ -14,17 +14,24 @@ AWS Elastic Beanstalk infrastructure for Sellix's [web-app](https://sellix.io), 
 
 ### Apply
 
-Initialize Environment
+1. Initialize Environment
 
 `export ENV={environment}`
 
-AWS IAM (optional, see main.tf)
+2. Initialize TFVARS
+
+`mv terraform.tfvars.example.json terraform.tfvars.json`
+
+then edit
+
+3. Edit Providers according to desired Regions in main.tf
+4. AWS IAM (optional, see main.tf)
 ```
 export AWS_ACCESS_KEY=""
 export AWS_SECRET_KEY=""
 ```
 
-Terraform Apply
+5. Terraform Apply
 
 ```
 terraform init

@@ -3,19 +3,16 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  workspace_infos = split("$", terraform.workspace)
-  aws_region      = local.workspace_infos[1]
-  workspace       = local.workspace_infos[0]
   tags = {
-    "Project"     = "sellix-web-app-v2-${local.workspace}"
-    "Environment" = local.workspace
+    "Project"     = "sellix-web-app-v2-${terraform.workspace}"
+    "Environment" = terraform.workspace
   }
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
     DOMAIN                 = local.production ? "sellix.io" : "sellix.gg"
     ENVIRONMENT            = local.production ? "production" : "staging"
   }
-  production = contains(["prod"], substr(local.workspace, 0, 4)) ? true : false
+  production = contains(["prod"], substr(terraform.workspace, 0, 4)) ? true : false
   notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }
   availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
@@ -218,7 +215,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = local.production ? var.ssl_arn[local.aws_region]["production"] : var.ssl_arn[local.aws_region]["staging"]
+      value     = local.production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
     },
     {
       namespace = "aws:elbv2:loadbalancer"

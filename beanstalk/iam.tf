@@ -28,7 +28,7 @@ data "aws_iam_policy_document" "sellix-web-app-elb-policy-document" {
       "s3:PutObject",
     ]
     resources = [
-      "arn:aws:s3:::${local.tags["Project"]}-${local.aws_region}-elb-logs/*"
+      "arn:aws:s3:::${local.tags["Project"]}-${var.aws_region}-elb-logs/*"
     ]
     principals {
       type        = "AWS"
@@ -168,27 +168,27 @@ data "aws_elb_service_account" "sellix-web-app-elb-service" {
 }
 
 resource "aws_iam_role" "sellix-web-app-codepipeline-role" {
-  name               = "${local.tags["Project"]}-${local.aws_region}-codepipeline-role"
+  name               = "${local.tags["Project"]}-${var.aws_region}-codepipeline-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-service-role" {
-  name               = "${local.tags["Project"]}-${local.aws_region}-service-role"
+  name               = "${local.tags["Project"]}-${var.aws_region}-service-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-ec2-role" {
-  name               = "${local.tags["Project"]}-${local.aws_region}-ec2-role"
+  name               = "${local.tags["Project"]}-${var.aws_region}-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-ec2-policy-document.json
 }
 
 resource "aws_iam_instance_profile" "sellix-web-app-ec2-instance-profile" {
-  name = "${local.tags["Project"]}-${local.aws_region}-ec2-instance-profile"
+  name = "${local.tags["Project"]}-${var.aws_region}-ec2-instance-profile"
   role = aws_iam_role.sellix-web-app-ec2-role.name
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-codepipeline-policy" {
-  name   = "${local.tags["Project"]}-${local.aws_region}-codepipeline-policy"
+  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-policy"
   role   = aws_iam_role.sellix-web-app-codepipeline-role.id
   policy = <<EOF
 {
@@ -230,36 +230,36 @@ EOF
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-service-sns-policy" {
-  name   = "${local.tags["Project"]}-${local.aws_region}-service-sns-policy"
+  name   = "${local.tags["Project"]}-${var.aws_region}-service-sns-policy"
   role   = aws_iam_role.sellix-web-app-service-role.id
   policy = data.aws_iam_policy_document.sellix-web-app-service-sns-policy-document.json
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-default-policy" {
-  name   = "${local.tags["Project"]}-${local.aws_region}-default-policy"
+  name   = "${local.tags["Project"]}-${var.aws_region}-default-policy"
   role   = aws_iam_role.sellix-web-app-ec2-role.id
   policy = data.aws_iam_policy_document.sellix-web-app-default-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-web-app-codebuild-role" {
-  name               = "${local.tags["Project"]}-${local.aws_region}-codebuild-role"
+  name               = "${local.tags["Project"]}-${var.aws_region}-codebuild-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-web-app-codebuild-assumerole-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-web-app-codebuild-permissions-policy" {
-  name   = "${local.tags["Project"]}-${local.aws_region}-codebuild-permissions-policy"
+  name   = "${local.tags["Project"]}-${var.aws_region}-codebuild-permissions-policy"
   path   = "/service-role/"
   policy = data.aws_iam_policy_document.sellix-web-app-codebuild-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-web-app-codebuild-policy" {
-  name        = "${local.tags["Project"]}-${local.aws_region}-codebuild-policy"
+  name        = "${local.tags["Project"]}-${var.aws_region}-codebuild-policy"
   description = "CodeBuild access policy"
   policy      = data.aws_iam_policy_document.sellix-web-app-codebuild-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-web-app-codebuild-codestar-connection-policy" {
-  name        = "${local.tags["Project"]}-${local.aws_region}-codebuild-codestar-connection-policy"
+  name        = "${local.tags["Project"]}-${var.aws_region}-codebuild-codestar-connection-policy"
   description = "CodeBuild CodeStar Connection policy"
   policy      = data.aws_iam_policy_document.sellix-web-app-codebuild-codestar-connection-policy-document.json
 }
