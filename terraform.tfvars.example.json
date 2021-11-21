@@ -1,0 +1,21 @@
+{
+    "aws_access_key": "",
+    "aws_secret_key": "",
+    "nodejs_version": "",
+    "codestar_connection_arn": "",
+    "github_opts": {
+      "repo": "",
+      "branch": "",
+      "org":  ""
+    },
+    "ssl_arn":  {
+      "eu-west-1": {
+        "staging":     "",
+        "production":  ""
+      },
+      "us-east-1": {
+        "staging":     "",
+        "production":  ""
+      }
+    }
+  }
