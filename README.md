@@ -2,9 +2,7 @@
 
 ![](https://img.shields.io/badge/Sellix-AWS-orange) ![](https://img.shields.io/badge/Version-v2.0.0-blueviolet)
 
-<p align="center">
-  <img src="https://cdn.sellix.io//static/github/aws-elastic-beanstalk-infrastructure.png" alt="Sellix Web App Infrastructure Schema"/>
-</p>
+![infrastructure chart](https://cdn.sellix.io/static/github/aws-elastic-beanstalk-infrastructure.svg)
 
 ## Description
 
