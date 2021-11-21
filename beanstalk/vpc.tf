@@ -12,7 +12,7 @@ resource "aws_vpc" "sellix-web-app-vpc" {
 }
 
 resource "aws_eip" "sellix-web-app-eip" {
-  count = local.production ? length(local.availability_zones) : 1
+  count = var.is_production ? length(local.availability_zones) : 1
   vpc   = "true"
   tags = merge({
     "Name" = "${local.tags["Project"]}-eip-${element(local.availability_zones, count.index)}"
@@ -25,7 +25,7 @@ resource "aws_eip" "sellix-web-app-eip" {
 }
 
 resource "aws_subnet" "sellix-web-app-public-subnet" {
-  count             = local.production ? length(local.availability_zones) : 1
+  count             = length(local.availability_zones)
   vpc_id            = aws_vpc.sellix-web-app-vpc.id
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
@@ -42,7 +42,7 @@ resource "aws_subnet" "sellix-web-app-public-subnet" {
 }
 
 resource "aws_subnet" "sellix-web-app-private-subnet" {
-  count             = local.production ? length(local.availability_zones) : 1
+  count             = length(local.availability_zones)
   vpc_id            = aws_vpc.sellix-web-app-vpc.id
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
@@ -59,7 +59,7 @@ resource "aws_subnet" "sellix-web-app-private-subnet" {
 }
 
 resource "aws_nat_gateway" "sellix-web-app-nat-gateway" {
-  count         = local.production ? length(local.availability_zones) : 1
+  count         = var.is_production ? length(local.availability_zones) : 1
   allocation_id = element(aws_eip.sellix-web-app-eip.*.id, count.index)
   subnet_id     = element(aws_subnet.sellix-web-app-public-subnet.*.id, count.index)
   tags = merge({
@@ -95,7 +95,7 @@ resource "aws_route_table" "sellix-web-app-public-route-table" {
 }
 
 resource "aws_route_table" "sellix-web-app-private-route-table" {
-  count  = local.production ? length(local.availability_zones) : 1
+  count  = var.is_production ? length(local.availability_zones) : 1
   vpc_id = aws_vpc.sellix-web-app-vpc.id
   route {
     cidr_block     = "0.0.0.0/0"
@@ -118,13 +118,13 @@ resource "aws_route" "sellix-web-app-route" {
 }
 
 resource "aws_route_table_association" "sellix-web-app-public-route-table-association" {
-  count          = local.production ? length(local.availability_zones) : 1
+  count          = length(local.availability_zones)
   subnet_id      = element(aws_subnet.sellix-web-app-public-subnet.*.id, count.index)
   route_table_id = aws_route_table.sellix-web-app-public-route-table.id
 }
 
 resource "aws_route_table_association" "sellix-web-app-private-route-table-association" {
-  count          = local.production ? length(local.availability_zones) : 1
+  count          = length(local.availability_zones)
   subnet_id      = element(aws_subnet.sellix-web-app-private-subnet.*.id, count.index)
-  route_table_id = local.production ? element(aws_route_table.sellix-web-app-private-route-table.*.id, count.index) : aws_route_table.sellix-web-app-private-route-table[0].id
+  route_table_id = var.is_production ? element(aws_route_table.sellix-web-app-private-route-table.*.id, count.index) : aws_route_table.sellix-web-app-private-route-table[0].id
 }

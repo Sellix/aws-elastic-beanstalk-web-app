@@ -23,6 +23,6 @@ resource "aws_codestarnotifications_notification_rule" "sellix-web-app-codestarn
     "codepipeline-pipeline-manual-approval-succeeded",
   ]
   target {
-    address = data.terraform_remote_state.sellix-web-app-chatbot-terraform-state.outputs.chatbot_arn
+    address = data.terraform_remote_state.sellix-web-app-chatbot-terraform-state.outputs["${var.aws_region}_chatbot-arn"]
   }
 }

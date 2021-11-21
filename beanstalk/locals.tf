@@ -9,10 +9,9 @@ locals {
   }
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = local.production ? "sellix.io" : "sellix.gg"
-    ENVIRONMENT            = local.production ? "production" : "staging"
+    DOMAIN                 = var.is_production ? "sellix.io" : "sellix.gg"
+    ENVIRONMENT            = var.is_production ? "production" : "staging"
   }
-  production = contains(["prod"], substr(terraform.workspace, 0, 4)) ? true : false
   notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }
   availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
@@ -30,7 +29,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "Subnets"
-      value     = join(",", sort(aws_subnet.sellix-web-app-private-subnet.*.id))
+      value     = var.is_production ? join(",", sort(aws_subnet.sellix-web-app-private-subnet.*.id)) : aws_subnet.sellix-web-app-private-subnet[0].id
     },
     {
       namespace = "aws:ec2:vpc"
@@ -166,7 +165,7 @@ locals {
       value     = "600"
     },
   ]
-  traffic_splitting = local.production ? [
+  traffic_splitting = var.is_production ? [
     {
       namespace = "aws:elasticbeanstalk:trafficsplitting"
       name      = "EvaluationTime"
@@ -215,7 +214,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = local.production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
+      value     = var.is_production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -242,7 +241,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "InstanceType"
-      value     = local.production ? "m5.large" : "t3.micro"
+      value     = var.is_production ? "m5.large" : "t3.micro"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -252,7 +251,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "RootVolumeSize"
-      value     = local.production ? "50" : "10"
+      value     = var.is_production ? "50" : "10"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -279,17 +278,17 @@ locals {
     {
       namespace = "aws:autoscaling:asg"
       name      = "MinSize"
-      value     = "2"
+      value     = var.is_production ? "2" : "1"
     },
     {
       namespace = "aws:autoscaling:asg"
       name      = "MaxSize"
-      value     = local.production ? "10" : "5"
+      value     = var.is_production ? "10" : "5"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"
       name      = "RollingUpdateType"
-      value     = local.production ? "Health" : "Immutable"
+      value     = var.is_production ? "Health" : "Immutable"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"

@@ -58,7 +58,7 @@ data "aws_iam_policy_document" "sellix-web-app-service-sns-policy-document" {
       "sns:Publish"
     ]
     resources = [
-      data.terraform_remote_state.sellix-web-app-chatbot-terraform-state.outputs.chatbot_arn,
+      data.terraform_remote_state.sellix-web-app-chatbot-terraform-state.outputs["${var.aws_region}_chatbot-arn"],
       "arn:aws:sns:eu-west-1:671586216466:ElasticBeanstalkNotifications*"
     ]
     effect = "Allow"

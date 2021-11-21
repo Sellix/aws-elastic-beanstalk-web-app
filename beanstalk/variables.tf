@@ -47,3 +47,8 @@ variable "codestar_connection_arn" {
   description = "CodeStar Connection ARN"
   default     = null
 }
+
+variable "is_production" {
+  description = "Environment Boolean"
+  default     = true
+}

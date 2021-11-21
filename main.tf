@@ -31,6 +31,10 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
+locals {
+  is_production = contains(["prod"], substr(terraform.workspace, 0, 4))
+}
+
 module "eu-west-1" {
   source = "./beanstalk"
   providers = {
@@ -43,9 +47,11 @@ module "eu-west-1" {
   github_opts             = var.github_opts
   ssl_arn                 = var.ssl_arn
   codestar_connection_arn = var.codestar_connection_arn
+  is_production           = local.is_production
 }
 
 module "us-east-1" {
+  count  = local.is_production ? 1 : 0
   source = "./beanstalk"
   providers = {
     aws = aws.us-east-1
@@ -57,6 +63,7 @@ module "us-east-1" {
   github_opts             = var.github_opts
   ssl_arn                 = var.ssl_arn
   codestar_connection_arn = var.codestar_connection_arn
+  is_production           = local.is_production
 }
 
 output "eu-west-1_eb-cname" {
@@ -64,5 +71,5 @@ output "eu-west-1_eb-cname" {
 }
 
 output "us-east-1_eb-cname" {
-  value = module.us-east-1.eb_cname
+  value = module.us-east-1.*.eb_cname
 }
