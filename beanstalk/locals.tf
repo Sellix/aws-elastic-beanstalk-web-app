@@ -1,14 +1,22 @@
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 locals {
+  tags = {
+    "Project"     = "sellix-web-app-v2-${terraform.workspace}"
+    "Environment" = terraform.workspace
+  }
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
     DOMAIN                 = local.production ? "sellix.io" : "sellix.gg"
     ENVIRONMENT            = local.production ? "production" : "staging"
   }
-  production             = contains(["prod"], substr(terraform.workspace, 0, 4)) ? true : false
-  notification_topic_arn = {for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
-    s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN"}
-  availability_zones     = ["${var.aws_region}a", "${var.aws_region}b"]
-  vpc                    = [
+  production = contains(["prod"], substr(terraform.workspace, 0, 4)) ? true : false
+  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-web-app-environment.all_settings :
+  s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }
+  availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
+  vpc = [
     {
       namespace = "aws:ec2:vpc"
       name      = "VPCId"
@@ -30,7 +38,7 @@ locals {
       value     = "false"
     }
   ]
-  environment            = [
+  environment = [
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
       name      = "DeregistrationDelay"
@@ -87,53 +95,53 @@ locals {
       value     = "lb_cookie"
     }
   ]
-  cloudwatch             = [
+  cloudwatch = [
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-    name      = "DeleteOnTerminate"
-    value     = "false"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+      name      = "DeleteOnTerminate"
+      value     = "false"
     },
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-    name      = "RetentionInDays"
-    value     = "90"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+      name      = "RetentionInDays"
+      value     = "90"
     },
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-    name      = "StreamLogs"
-    value     = "true"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+      name      = "StreamLogs"
+      value     = "true"
     },
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
-    name      = "DeleteOnTerminate"
-    value     = "false"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+      name      = "DeleteOnTerminate"
+      value     = "false"
     },
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
-    name      = "HealthStreamingEnabled"
-    value     = "false"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+      name      = "HealthStreamingEnabled"
+      value     = "false"
     },
     {
-    namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
-    name      = "RetentionInDays"
-    value     = "7"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+      name      = "RetentionInDays"
+      value     = "7"
     },
   ]
-  healthcheck            = [
+  healthcheck = [
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "IgnoreHealthCheck"
       value     = "false"
     },
     {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "HealthCheckInterval"
-    value     = "15"
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "HealthCheckInterval"
+      value     = "15"
     },
     {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "HealthCheckPath"
-    value     = "/"
+      namespace = "aws:elasticbeanstalk:environment:process:default"
+      name      = "HealthCheckPath"
+      value     = "/"
     },
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
@@ -141,7 +149,7 @@ locals {
       value     = "5"
     },
   ]
-  command                = [
+  command = [
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "BatchSize"
@@ -158,7 +166,7 @@ locals {
       value     = "600"
     },
   ]
-  traffic_splitting      = local.production ? [
+  traffic_splitting = local.production ? [
     {
       namespace = "aws:elasticbeanstalk:trafficsplitting"
       name      = "EvaluationTime"
@@ -174,12 +182,12 @@ locals {
       name      = "DeploymentPolicy"
       value     = "TrafficSplitting"
     }
-  ] : [
-        {
-          namespace = "aws:elasticbeanstalk:command"
-          name      = "DeploymentPolicy"
-          value     = "Immutable"
-        }
+    ] : [
+    {
+      namespace = "aws:elasticbeanstalk:command"
+      name      = "DeploymentPolicy"
+      value     = "Immutable"
+    }
   ]
   generic_elb = [
     {
@@ -207,7 +215,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = local.production ? var.ssl_production_acm_arn : var.ssl_staging_acm_arn
+      value     = local.production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
     },
     {
       namespace = "aws:elbv2:loadbalancer"

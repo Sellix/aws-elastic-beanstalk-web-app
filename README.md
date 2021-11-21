@@ -2,9 +2,7 @@
 
 ![](https://img.shields.io/badge/Sellix-AWS-orange) ![](https://img.shields.io/badge/Version-v2.0.0-blueviolet)
 
-<p align="center">
-  <img src="https://cdn.sellix.io//static/github/aws-elastic-beanstalk-infrastructure.png" alt="Sellix Web App Infrastructure Schema"/>
-</p>
+![infrastructure chart](https://cdn.sellix.io/static/github/aws-elastic-beanstalk-infrastructure-v2.0.0.png)
 
 ## Description
 
@@ -14,16 +12,32 @@ AWS Elastic Beanstalk infrastructure for Sellix's [web-app](https://sellix.io), 
 
 ### Apply
 
-`export ENV={environment}; envsubst < main.tf | tee main.tf`
+1. Initialize Environment
 
-`terraform init -backend-config="access_key=" -backend-config="secret_key="`
+`export ENV={environment}`
 
-`terraform workspace new {environment}`
+2. Initialize TFVARS
 
-`terraform workspace select {environment}`
+`mv terraform.tfvars.example.json terraform.tfvars.json`
 
-`terraform apply`
+then edit
+
+3. Edit Providers according to desired Regions in main.tf
+4. AWS IAM (optional, see main.tf)
+```
+export AWS_ACCESS_KEY=""
+export AWS_SECRET_KEY=""
+```
+
+5. Terraform Apply
+
+```
+terraform init
+terraform workspace new $ENV
+terraform workspace select $ENV
+terraform apply
+```
 
 ### Switch Workspaces
 
-`terraform select {environment}`
+`terraform select $ENV`
