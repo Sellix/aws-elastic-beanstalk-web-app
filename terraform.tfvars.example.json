@@ -2,6 +2,7 @@
     "aws_access_key": "",
     "aws_secret_key": "",
     "nodejs_version": "",
+    "main_cidr_block": "",
     "codestar_connection_arn": "",
     "github_opts": {
       "repo": "",
@@ -17,5 +18,9 @@
         "staging":     "",
         "production":  ""
       }
+    },
+    "vpc_peerings": {
+      "eu-west-1": "",
+      "us-east-1": ""
     }
   }

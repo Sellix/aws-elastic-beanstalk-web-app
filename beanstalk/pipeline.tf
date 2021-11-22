@@ -23,7 +23,7 @@ resource "aws_codepipeline" "sellix-web-app-codepipeline" {
         ConnectionArn        = var.codestar_connection_arn
         FullRepositoryId     = "${var.github_opts["org"]}/${var.github_opts["repo"]}"
         BranchName           = var.github_opts["branch"]
-        DetectChanges        = false
+        DetectChanges        = var.is_production ? false : true
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
     }

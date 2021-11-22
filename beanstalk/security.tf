@@ -23,6 +23,17 @@ resource "aws_security_group" "sellix-web-app-security-group" {
   )
 }
 
+resource "aws_security_group_rule" "vpc_peering" {
+  count             = var.is_production ? 1 : 0
+  security_group_id = aws_security_group.sellix-web-app-security-group.id
+  description       = "allow legacy vpc ingress traffic"
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = -1
+  cidr_blocks       = [var.legacy-vpc_cidr-block]
+}
+
 resource "aws_security_group" "sellix-web-app-elb-security-group" {
   name        = "${local.tags["Project"]}-elb-security-group"
   description = "Allow ELB inbound traffic"

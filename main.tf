@@ -43,9 +43,12 @@ module "eu-west-1" {
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   nodejs_version          = var.nodejs_version
+  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, 0)
+  legacy-vpc_cidr-block   = var.legacy-vpc_cidr-block
   aws_region              = "eu-west-1"
   github_opts             = var.github_opts
   ssl_arn                 = var.ssl_arn
+  vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
   is_production           = local.is_production
 }
@@ -60,8 +63,11 @@ module "us-east-1" {
   aws_secret_key          = var.aws_secret_key
   aws_region              = "us-east-1"
   nodejs_version          = var.nodejs_version
+  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, 1)
+  legacy-vpc_cidr-block   = var.legacy-vpc_cidr-block
   github_opts             = var.github_opts
   ssl_arn                 = var.ssl_arn
+  vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
   is_production           = local.is_production
 }

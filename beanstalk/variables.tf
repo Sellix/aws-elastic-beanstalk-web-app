@@ -30,7 +30,12 @@ variable "nodejs_version" {
 
 variable "main_cidr_block" {
   description = "main cidr"
-  default     = "172.18.0.0/16"
+  default     = null
+}
+
+variable "legacy-vpc_cidr-block" {
+  description = "legacy vpc cidr"
+  default     = null
 }
 
 variable "github_opts" {
@@ -40,6 +45,11 @@ variable "github_opts" {
 
 variable "ssl_arn" {
   description = "SSL Certificate ARN"
+  default     = {}
+}
+
+variable "vpc_peerings" {
+  description = "VPC Peering Ids"
   default     = {}
 }
 
