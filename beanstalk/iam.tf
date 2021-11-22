@@ -163,6 +163,50 @@ data "aws_iam_policy_document" "sellix-web-app-codebuild-permissions-policy-docu
   }
 }
 
+data "aws_iam_policy_document" "sellix-web-app-codepipeline-s3-permissions-policy-document" {
+  statement {
+    sid = ""
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:GetBucketVersioning",
+      "s3:PutObject"
+    ]
+    effect = "Allow"
+    resources = [
+      aws_s3_bucket.sellix-web-app-codepipeline-s3-bucket.arn,
+      "${aws_s3_bucket.sellix-web-app-codepipeline-s3-bucket.arn}/*"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "sellix-web-app-codepipeline-codebuild-permissions-policy-document" {
+  statement {
+    sid = ""
+    actions = [
+      "codebuild:BatchGetBuilds",
+      "codebuild:StartBuild"
+    ]
+    effect = "Allow"
+    resources = [
+      "*"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "sellix-web-app-codepipeline-codestar-permissions-policy-document" {
+  statement {
+    sid = ""
+    actions = [
+      "codestar-connections:*"
+    ]
+    effect = "Allow"
+    resources = [
+      var.codestar_connection_arn
+    ]
+  }
+}
+
 data "aws_elb_service_account" "sellix-web-app-elb-service" {
   count = 1
 }
@@ -185,48 +229,6 @@ resource "aws_iam_role" "sellix-web-app-ec2-role" {
 resource "aws_iam_instance_profile" "sellix-web-app-ec2-instance-profile" {
   name = "${local.tags["Project"]}-${var.aws_region}-ec2-instance-profile"
   role = aws_iam_role.sellix-web-app-ec2-role.name
-}
-
-resource "aws_iam_role_policy" "sellix-web-app-codepipeline-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-policy"
-  role   = aws_iam_role.sellix-web-app-codepipeline-role.id
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect":"Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:GetObjectVersion",
-        "s3:GetBucketVersioning",
-        "s3:PutObject"
-      ],
-      "Resource": [
-        "${aws_s3_bucket.sellix-web-app-codepipeline-s3-bucket.arn}",
-        "${aws_s3_bucket.sellix-web-app-codepipeline-s3-bucket.arn}/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "codebuild:BatchGetBuilds",
-        "codebuild:StartBuild"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "codestar-connections:*"
-      ],
-      "Resource": [
-        "${var.codestar_connection_arn}"
-      ]
-    }
-  ]
-}
-EOF
 }
 
 resource "aws_iam_role_policy" "sellix-web-app-service-sns-policy" {
@@ -262,6 +264,21 @@ resource "aws_iam_policy" "sellix-web-app-codebuild-codestar-connection-policy" 
   name        = "${local.tags["Project"]}-${var.aws_region}-codebuild-codestar-connection-policy"
   description = "CodeBuild CodeStar Connection policy"
   policy      = data.aws_iam_policy_document.sellix-web-app-codebuild-codestar-connection-policy-document.json
+}
+
+resource "aws_iam_policy" "sellix-web-app-codepipeline-s3-permissions-policy" {
+  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-s3-permissions-policy"
+  policy = data.aws_iam_policy_document.sellix-web-app-codepipeline-s3-permissions-policy-document.json
+}
+
+resource "aws_iam_policy" "sellix-web-app-codepipeline-codebuild-permissions-policy" {
+  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-codebuild-permissions-policy"
+  policy = data.aws_iam_policy_document.sellix-web-app-codepipeline-codebuild-permissions-policy-document.json
+}
+
+resource "aws_iam_policy" "sellix-web-app-codepipeline-codestar-permissions-policy" {
+  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-codestar-permissions-policy"
+  policy = data.aws_iam_policy_document.sellix-web-app-codepipeline-codestar-permissions-policy-document.json
 }
 
 resource "aws_iam_role_policy_attachment" "sellix-web-app-codepipeline-policy-attachment" {
@@ -323,4 +340,19 @@ resource "aws_iam_role_policy_attachment" "sellix-web-app-codebuild-codestar-con
 resource "aws_iam_role_policy_attachment" "sellix-web-app-codebuild-permissions-policy-attachment" {
   role       = aws_iam_role.sellix-web-app-codebuild-role.name
   policy_arn = aws_iam_policy.sellix-web-app-codebuild-permissions-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sellix-web-app-codepipeline-s3-permissions-policy-attachment" {
+  role       = aws_iam_role.sellix-web-app-codepipeline-role.name
+  policy_arn = aws_iam_policy.sellix-web-app-codepipeline-s3-permissions-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sellix-web-app-codepipeline-codebuild-permissions-policy-attachment" {
+  role       = aws_iam_role.sellix-web-app-codepipeline-role.name
+  policy_arn = aws_iam_policy.sellix-web-app-codepipeline-codebuild-permissions-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sellix-web-app-codepipeline-codestar-permissions-policy-attachment" {
+  role       = aws_iam_role.sellix-web-app-codepipeline-role.name
+  policy_arn = aws_iam_policy.sellix-web-app-codepipeline-codestar-permissions-policy.arn
 }
