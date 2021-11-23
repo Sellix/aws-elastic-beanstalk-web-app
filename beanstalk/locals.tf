@@ -214,7 +214,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = var.is_production ? var.ssl_arn[var.aws_region]["production"] : var.ssl_arn[var.aws_region]["staging"]
+      value     = var.ssl_arn[var.aws_region][terraform.workspace]
     },
     {
       namespace = "aws:elbv2:loadbalancer"

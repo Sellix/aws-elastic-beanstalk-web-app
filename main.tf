@@ -43,7 +43,7 @@ module "eu-west-1" {
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   nodejs_version          = var.nodejs_version
-  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, 0)
+  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, local.is_production ? 0 : 2)
   legacy-vpc_cidr-block   = var.legacy-vpc_cidr-block
   aws_region              = "eu-west-1"
   github_opts             = var.github_opts

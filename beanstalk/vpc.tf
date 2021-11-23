@@ -102,10 +102,10 @@ resource "aws_route_table" "sellix-web-app-private-route-table" {
     nat_gateway_id = element(aws_nat_gateway.sellix-web-app-nat-gateway.*.id, count.index)
   }
   dynamic "route" {
-    for_each = var.is_production ? [1] : []
+    for_each = length(lookup(var.vpc_peerings[var.aws_region], terraform.workspace, "")) > 0 ? [1] : []
     content {
       cidr_block                = var.legacy-vpc_cidr-block
-      vpc_peering_connection_id = var.vpc_peerings[var.aws_region]
+      vpc_peering_connection_id = var.vpc_peerings[var.aws_region][terraform.workspace]
     }
   }
   lifecycle {
