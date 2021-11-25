@@ -4,6 +4,7 @@
   "nodejs_version": "",
   "main_cidr_block": "",
   "codestar_connection_arn": "",
+  "canary_deployments": false,
   "github_opts": {
     "repo": "",
     "branch": "",

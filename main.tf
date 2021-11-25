@@ -50,6 +50,7 @@ module "eu-west-1" {
   ssl_arn                 = var.ssl_arn
   vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
+  canary_deployments      = var.canary_deployments
   is_production           = local.is_production
 }
 
@@ -69,6 +70,7 @@ module "us-east-1" {
   ssl_arn                 = var.ssl_arn
   vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
+  canary_deployments      = var.canary_deployments
   is_production           = local.is_production
 }
 

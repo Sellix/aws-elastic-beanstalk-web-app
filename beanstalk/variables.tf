@@ -58,6 +58,11 @@ variable "codestar_connection_arn" {
   default     = null
 }
 
+variable "canary_deployments" {
+  description = "Enables canary deployments through TG, ALB stickiness and EB traffic splitting"
+  default     = null
+}
+
 variable "is_production" {
   description = "Environment Boolean"
   default     = true

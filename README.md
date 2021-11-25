@@ -40,4 +40,4 @@ terraform apply
 
 ### Switch Workspaces
 
-`terraform select $ENV`
+`terraform workspace select $ENV`

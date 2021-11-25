@@ -40,3 +40,8 @@ variable "codestar_connection_arn" {
   description = "CodeStar Connection ARN"
   default     = null
 }
+
+variable "canary_deployments" {
+  description = "Enables canary deployments through TG, ALB stickiness and EB traffic splitting"
+  default     = null
+}

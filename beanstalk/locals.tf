@@ -81,7 +81,7 @@ locals {
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
       name      = "StickinessEnabled"
-      value     = "true"
+      value     = "${var.canary_deployments}"
     },
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
@@ -165,7 +165,7 @@ locals {
       value     = "600"
     },
   ]
-  traffic_splitting = var.is_production ? [
+  traffic_splitting = var.canary_deployments ? [
     {
       namespace = "aws:elasticbeanstalk:trafficsplitting"
       name      = "EvaluationTime"
