@@ -81,7 +81,7 @@ locals {
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
       name      = "StickinessEnabled"
-      value     = "${var.canary_deployments}"
+      value     = "true"
     },
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
@@ -185,7 +185,7 @@ locals {
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "DeploymentPolicy"
-      value     = "Immutable"
+      value     = var.is_production ? "Immutable" : "AllAtOnce"
     }
   ]
   generic_elb = [
@@ -240,6 +240,11 @@ locals {
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
+      name      = "SSHSourceRestriction"
+      value     = "tcp, 22, 22, 127.0.0.1/32"
+    },
+    {
+      namespace = "aws:autoscaling:launchconfiguration"
       name      = "InstanceType"
       value     = var.is_production ? "m5.large" : "t3.micro"
     },
@@ -288,7 +293,7 @@ locals {
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"
       name      = "RollingUpdateType"
-      value     = var.is_production ? "Health" : "Immutable"
+      value     = "Immutable" # var.is_production ? "Health" : "Immutable"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"

@@ -1,5 +1,141 @@
 data "aws_iam_policy_document" "sellix-web-app-default-policy-document" {
   statement {
+    sid = "EBRequirements"
+    actions = [
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeScalingActivities",
+      "autoscaling:DescribeNotificationConfigurations",
+      "autoscaling:AttachInstances",
+      "autoscaling:CreateAutoScalingGroup",
+      "autoscaling:CreateLaunchConfiguration",
+      "autoscaling:DeleteLaunchConfiguration",
+      "autoscaling:DeleteAutoScalingGroup",
+      "autoscaling:DeleteScheduledAction",
+      "autoscaling:DescribeAccountLimits",
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeLaunchConfigurations",
+      "autoscaling:DescribeLoadBalancers",
+      "autoscaling:DescribeNotificationConfigurations",
+      "autoscaling:DescribeScalingActivities",
+      "autoscaling:DescribeScheduledActions",
+      "autoscaling:DetachInstances",
+      "autoscaling:PutScheduledUpdateGroupAction",
+      "autoscaling:ResumeProcesses",
+      "autoscaling:SetDesiredCapacity",
+      "autoscaling:SetInstanceProtection",
+      "autoscaling:SuspendProcesses",
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+      "autoscaling:UpdateAutoScalingGroup",
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceStatus",
+      "ec2:GetConsoleOutput",
+      "ec2:AssociateAddress",
+      "ec2:DescribeAddresses",
+      "ec2:DescribeSecurityGroups",
+      "ec2:AssociateAddress",
+      "ec2:AllocateAddress",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DescribeAccountAttributes",
+      "ec2:DescribeAddresses",
+      "ec2:DescribeImages",
+      "ec2:DescribeInstances",
+      "ec2:DescribeKeyPairs",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSnapshots",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DisassociateAddress",
+      "ec2:ReleaseAddress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:TerminateInstances",
+      "elasticloadbalancing:DescribeInstanceHealth",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+      "elasticloadbalancing:ConfigureHealthCheck",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+      "elasticloadbalancing:DescribeInstanceHealth",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets",
+      "iam:ListRoles",
+      "iam:PassRole",
+      "codebuild:CreateProject",
+      "codebuild:DeleteProject",
+      "codebuild:BatchGetBuilds",
+      "codebuild:StartBuild",
+      "cloudwatch:PutMetricAlarm",
+    ]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+  statement {
+    sid = "BucketAccess"
+    actions = [
+      "s3:Get*",
+      "s3:List*",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:s3:::elasticbeanstalk-*",
+      "arn:aws:s3:::elasticbeanstalk-*/*"
+    ]
+  }
+  /* statement {
+    sid = "XRayAccess"
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords",
+      "xray:GetSamplingRules",
+      "xray:GetSamplingTargets",
+      "xray:GetSamplingStatisticSummaries"
+    ]
+    effect   = "Allow"
+    resources = ["*"]
+  }*/
+  statement {
+    sid = "CloudWatchLogsAccess"
+    actions = [
+      "logs:PutRetentionPolicy",
+      "logs:PutLogEvents",
+      "logs:CreateLogStream",
+      "logs:CreateLogGroup",
+      "logs:DescribeLogStreams",
+      "logs:DescribeLogGroups"
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:logs:*:*:log-group:/aws/elasticbeanstalk*"
+    ]
+  }
+  statement {
+    sid = "ElasticBeanstalkHealthAccess"
+    actions = [
+      "elasticbeanstalk:*"
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:elasticbeanstalk:*:*:application/*",
+      "arn:aws:elasticbeanstalk:*:*:environment/*"
+    ]
+  }
+}
+
+/* data "aws_iam_policy_document" "sellix-web-app-default-policy-document" {
+  statement {
     sid = ""
     actions = [
       "elasticbeanstalk:*",
@@ -19,7 +155,7 @@ data "aws_iam_policy_document" "sellix-web-app-default-policy-document" {
     resources = ["*"]
     effect    = "Allow"
   }
-}
+} */
 
 data "aws_iam_policy_document" "sellix-web-app-elb-policy-document" {
   statement {
@@ -189,7 +325,7 @@ data "aws_iam_policy_document" "sellix-web-app-codepipeline-codebuild-permission
     ]
     effect = "Allow"
     resources = [
-      "*"
+      aws_codebuild_project.sellix-web-app.arn
     ]
   }
 }
@@ -296,11 +432,6 @@ resource "aws_iam_role_policy_attachment" "sellix-web-app-service-policy-attachm
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService"
 }
 
-resource "aws_iam_role_policy_attachment" "sellix-web-app-docker-policy-attachment" {
-  role       = aws_iam_role.sellix-web-app-ec2-role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
-}
-
 resource "aws_iam_role_policy_attachment" "sellix-web-app-web-tier-policy-attachment" {
   role       = aws_iam_role.sellix-web-app-ec2-role.name
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
@@ -313,15 +444,7 @@ resource "aws_iam_role_policy_attachment" "sellix-web-app-worker-tier-policy-att
 
 resource "aws_iam_role_policy_attachment" "sellix-web-app-ssm-ec2-policy-attachment" {
   role       = aws_iam_role.sellix-web-app-ec2-role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "sellix-web-app-ssm-automation-policy-attachment" {
-  role       = aws_iam_role.sellix-web-app-ec2-role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   lifecycle {
     create_before_destroy = true
   }

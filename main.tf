@@ -4,6 +4,10 @@ terraform {
     aws = {
       "source" = "hashicorp/aws"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 3.0"
+    }
   }
   backend "s3" {
     profile        = "sellix-terraform"

@@ -8,26 +8,26 @@
   "github_opts": {
     "repo": "",
     "branch": "",
-    "org":  ""
+    "org": ""
   },
-  "ssl_arn":  {
+  "ssl_arn": {
     "eu-west-1": {
-      "staging":     "",
-      "production":  ""
+      "staging": "",
+      "production": ""
     },
     "us-east-1": {
-      "staging":     "",
-      "production":  ""
+      "staging": "",
+      "production": ""
     }
   },
   "vpc_peerings": {
     "eu-west-1": {
-      "staging":     "",
-      "production":  ""
+      "staging": "",
+      "production": ""
     },
     "us-east-1": {
-      "staging":     "",
-      "production":  ""
+      "staging": "",
+      "production": ""
     }
   }
 }
