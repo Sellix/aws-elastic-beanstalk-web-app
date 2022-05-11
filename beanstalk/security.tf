@@ -1,7 +1,7 @@
-resource "aws_security_group" "sellix-web-app-security-group" {
+resource "aws_security_group" "sellix-eb-security-group" {
   name        = "${local.tags["Project"]}-security-group"
   description = "Allow inbound traffic"
-  vpc_id      = aws_vpc.sellix-web-app-vpc.id
+  vpc_id      = aws_vpc.sellix-eb-vpc.id
   ingress {
     description = "allow vpc ingress traffic"
     from_port   = 0
@@ -23,9 +23,9 @@ resource "aws_security_group" "sellix-web-app-security-group" {
   )
 }
 
-resource "aws_security_group_rule" "vpc_peering" {
+resource "aws_security_group_rule" "sellix-eb-vpc-peering-security-group-rule" {
   count             = var.is_production ? 1 : 0
-  security_group_id = aws_security_group.sellix-web-app-security-group.id
+  security_group_id = aws_security_group.sellix-eb-security-group.id
   description       = "allow legacy vpc ingress traffic"
   type              = "ingress"
   from_port         = 0
@@ -34,10 +34,10 @@ resource "aws_security_group_rule" "vpc_peering" {
   cidr_blocks       = [var.legacy-vpc_cidr-block]
 }
 
-resource "aws_security_group" "sellix-web-app-elb-security-group" {
+resource "aws_security_group" "sellix-eb-elb-security-group" {
   name        = "${local.tags["Project"]}-elb-security-group"
   description = "Allow ELB inbound traffic"
-  vpc_id      = aws_vpc.sellix-web-app-vpc.id
+  vpc_id      = aws_vpc.sellix-eb-vpc.id
   ingress {
     description = "ingress HTTP"
     from_port   = 80

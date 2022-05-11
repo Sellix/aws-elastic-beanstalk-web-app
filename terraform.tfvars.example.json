@@ -1,33 +1,33 @@
 {
-  "aws_access_key": "",
-  "aws_secret_key": "",
-  "nodejs_version": "",
-  "main_cidr_block": "",
-  "codestar_connection_arn": "",
-  "canary_deployments": false,
-  "github_opts": {
-    "repo": "",
-    "branch": "",
-    "org": ""
-  },
-  "ssl_arn": {
-    "eu-west-1": {
-      "staging": "",
-      "production": ""
+    "aws_access_key": "",
+    "aws_secret_key": "",
+    "nodejs_version": "",
+    "main_cidr_block": "",
+    "codestar_connection_arn": "",
+    "canary_deployments": false,
+    "github_opts": {
+        "repo": [],
+        "branch": "",
+        "org": ""
     },
-    "us-east-1": {
-      "staging": "",
-      "production": ""
-    }
-  },
-  "vpc_peerings": {
-    "eu-west-1": {
-      "staging": "",
-      "production": ""
+    "ssl_arn": {
+        "eu-west-1": {
+            "staging": "",
+            "production": ""
+        },
+        "us-east-1": {
+            "staging": "",
+            "production": ""
+        }
     },
-    "us-east-1": {
-      "staging": "",
-      "production": ""
+    "vpc_peerings": {
+        "eu-west-1": {
+            "staging": "",
+            "production": ""
+        },
+        "us-east-1": {
+            "staging": "",
+            "production": ""
+        }
     }
-  }
 }

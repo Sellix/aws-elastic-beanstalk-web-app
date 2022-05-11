@@ -1,4 +1,4 @@
-resource "aws_key_pair" "sellix-web-app-keypair" {
+resource "aws_key_pair" "sellix-eb-keypair" {
   key_name   = "${local.tags["Project"]}-keypair"
   public_key = file(var.public_key_path)
   lifecycle {

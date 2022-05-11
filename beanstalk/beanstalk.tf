@@ -5,9 +5,10 @@ data "aws_elastic_beanstalk_solution_stack" "nodejs" {
   var.nodejs_version : "(.*)"}$"
 }
 
-resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
-  name                   = local.tags["Project"]
-  application            = aws_elastic_beanstalk_application.sellix-web-app.name
+resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
+  count = length(var.github_opts.repo)
+  name                   = "${local.tags["Project"]}-${var.github_opts.repo[count.index]}"
+  application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
   solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs.name
@@ -100,7 +101,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-web-app-environment" {
   tags = local.tags
 }
 
-resource "aws_elastic_beanstalk_application" "sellix-web-app" {
+resource "aws_elastic_beanstalk_application" "sellix-eb" {
   name        = local.tags["Project"]
   description = "NodeJS Web Application"
 }
