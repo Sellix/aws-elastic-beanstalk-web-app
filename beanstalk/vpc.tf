@@ -1,9 +1,8 @@
 resource "aws_vpc" "sellix-eb-vpc" {
   cidr_block           = var.main_cidr_block
   instance_tenancy     = "default"
-  enable_dns_support   = "true"
-  enable_dns_hostnames = "true"
-  enable_classiclink   = "false"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
   tags = merge({
     "Name" = "${local.tags["Project"]}-vpc"
     },
@@ -33,7 +32,7 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
     ceil(log(length(local.availability_zones) * 4, 2)),
     count.index
   )
-  map_public_ip_on_launch = "true"
+  map_public_ip_on_launch = "false"
   tags = merge({
     "Name" = "${local.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
     },
@@ -60,8 +59,8 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
 
 resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
   count         = var.is_production ? length(local.availability_zones) : 1
-  allocation_id = element(aws_eip.sellix-eb-eip.*.id, count.index)
-  subnet_id     = element(aws_subnet.sellix-eb-public-subnet.*.id, count.index)
+  allocation_id = element(aws_eip.sellix-eb-eip[*].id, count.index)
+  subnet_id     = element(aws_subnet.sellix-eb-public-subnet[*].id, count.index)
   tags = merge({
     "Name" = "${local.tags["Project"]}-nat-gateway-${element(local.availability_zones, count.index)}"
     },
@@ -99,7 +98,7 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
   vpc_id = aws_vpc.sellix-eb-vpc.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = element(aws_nat_gateway.sellix-eb-nat-gateway.*.id, count.index)
+    nat_gateway_id = element(aws_nat_gateway.sellix-eb-nat-gateway[*].id, count.index)
   }
   dynamic "route" {
     for_each = length(lookup(var.vpc_peerings[var.aws_region], terraform.workspace, "")) > 0 ? [1] : []
@@ -126,12 +125,12 @@ resource "aws_route" "sellix-eb-route" {
 
 resource "aws_route_table_association" "sellix-eb-public-route-table-association" {
   count          = length(local.availability_zones)
-  subnet_id      = element(aws_subnet.sellix-eb-public-subnet.*.id, count.index)
+  subnet_id      = element(aws_subnet.sellix-eb-public-subnet[*].id, count.index)
   route_table_id = aws_route_table.sellix-eb-public-route-table.id
 }
 
 resource "aws_route_table_association" "sellix-eb-private-route-table-association" {
   count          = length(local.availability_zones)
-  subnet_id      = element(aws_subnet.sellix-eb-private-subnet.*.id, count.index)
-  route_table_id = var.is_production ? element(aws_route_table.sellix-eb-private-route-table.*.id, count.index) : aws_route_table.sellix-eb-private-route-table[0].id
+  subnet_id      = element(aws_subnet.sellix-eb-private-subnet[*].id, count.index)
+  route_table_id = var.is_production ? element(aws_route_table.sellix-eb-private-route-table[*].id, count.index) : aws_route_table.sellix-eb-private-route-table[0].id
 }

@@ -4,16 +4,21 @@ data "aws_availability_zones" "available" {
 
 locals {
   tags = {
-    "Project"     = "sellix-eb-v2-${terraform.workspace}"
+    "Project"     = "sellix-eb-${terraform.workspace}"
     "Environment" = terraform.workspace
   }
+  codebuild_envs = distinct([for k in keys(var.environments) : var.environments[k]["versions"]["codebuild"]])
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = var.is_production ? "sellix.io" : "sellix.gg"
+    DOMAIN                 = "${join("", regexall(join("|", var.domains), terraform.workspace))}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
+    NODE_ENV               = "prod"
+    REDIS_HOST             = aws_elasticache_replication_group.sellix-eb-redis.primary_endpoint_address
+    REDIS_PORT             = 6379
+    REDIS_URL              = "redis://${aws_elasticache_replication_group.sellix-eb-redis.primary_endpoint_address}:6379"
   }
 
-/*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
+  /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }*/
   availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
   vpc = [
@@ -30,7 +35,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "Subnets"
-      value     = var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet.*.id)) : aws_subnet.sellix-eb-private-subnet[0].id
+      value     = var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet[*].id)) : aws_subnet.sellix-eb-private-subnet[0].id
     },
     {
       namespace = "aws:ec2:vpc"
@@ -57,7 +62,7 @@ locals {
     {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "ServiceRole"
-      value     = aws_iam_role.sellix-eb-service-role.name
+      value     = aws_iam_role.sellix-eb-service-role.arn
     },
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
@@ -140,11 +145,6 @@ locals {
     },
     {
       namespace = "aws:elasticbeanstalk:environment:process:default"
-      name      = "HealthCheckPath"
-      value     = "/"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
       name      = "HealthCheckTimeout"
       value     = "5"
     },
@@ -193,7 +193,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBSubnets"
-      value     = join(",", sort(aws_subnet.sellix-eb-public-subnet.*.id))
+      value     = join(",", sort(aws_subnet.sellix-eb-public-subnet[*].id))
     }
   ]
   alb = [
@@ -247,7 +247,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "InstanceType"
-      value     = var.is_production ? "m5.large" : "t3.medium"
+      value     = var.is_production ? "t4g.xlarge" : "t4g.medium" //"m5.large" : "t3.medium"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"

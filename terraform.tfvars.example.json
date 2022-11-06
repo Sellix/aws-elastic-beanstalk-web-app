@@ -5,10 +5,20 @@
     "main_cidr_block": "",
     "codestar_connection_arn": "",
     "canary_deployments": false,
-    "github_opts": {
-        "repo": [],
-        "branch": "",
-        "org": ""
+    "domains": [],
+    "environments": {
+        "name": {
+            "enabled": "true",
+            "versions": {
+                "codebuild": "6",
+                "nodejs": "16"
+            },
+            "vars": {}
+        }
+    },
+    "github_org": "repo-org",
+    "github_repos": {
+            "repo-name": "repo-branch"
     },
     "ssl_arn": {
         "eu-west-1": {

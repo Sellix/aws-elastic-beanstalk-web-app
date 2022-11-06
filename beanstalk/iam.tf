@@ -168,7 +168,7 @@ data "aws_iam_policy_document" "sellix-eb-elb-policy-document" {
     ]
     principals {
       type        = "AWS"
-      identifiers = [join("", data.aws_elb_service_account.sellix-eb-elb-service.*.arn)]
+      identifiers = [join("", data.aws_elb_service_account.sellix-eb-elb-service[*].arn)]
     }
     effect = "Allow"
   }
@@ -232,14 +232,24 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-policy-document" {
     effect = "Allow"
     actions = [
       "s3:PutObject",
-      "s3:GetObject",
       "s3:GetObjectVersion",
-      "s3:GetBucketAcl",
+      "s3:GetObject",
       "s3:GetBucketLocation",
+      "s3:GetBucketAcl",
+      "s3:DeleteObject",
+      "s3:GetBucketLocation",
+      "s3:GetObject",
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+      "s3:ListObjects",
+      "s3:ListObjectsV2"
     ]
     resources = [
       aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.arn,
-      "${aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.arn}/*"
+      "${aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.arn}/*",
+      "arn:aws:s3:::sellix-assets",
+      "arn:aws:s3:::sellix-assets/*"
     ]
   }
 }
@@ -323,10 +333,8 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-permissions-pol
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild"
     ]
-    effect = "Allow"
-    resources = [
-      aws_codebuild_project.sellix-eb.arn
-    ]
+    effect    = "Allow"
+    resources = aws_codebuild_project.sellix-eb[*].arn
   }
 }
 

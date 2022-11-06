@@ -2,7 +2,8 @@ terraform {
   required_version = ">= 0.13"
   required_providers {
     aws = {
-      "source" = "hashicorp/aws"
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
     }
     cloudflare = {
       source  = "cloudflare/cloudflare"
@@ -36,8 +37,17 @@ provider "aws" {
 }
 
 locals {
-  is_production = contains(["prod"], substr(terraform.workspace, 0, 4))
+  is_production = length(regexall("production", terraform.workspace)) > 0
+  environments  = { for k, v in var.environments : k => v if tobool(v.enabled) }
 }
+
+/* https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc
+data "aws_vpcs" "eb-vpcs" {
+  tags = {
+    service = "production"
+  }
+}
+*/
 
 module "eu-west-1" {
   source = "./beanstalk"
@@ -46,11 +56,13 @@ module "eu-west-1" {
   }
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
-  nodejs_version          = var.nodejs_version
-  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, local.is_production ? 0 : 2)
+  main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, (local.is_production ? 0 : 2) + length(terraform.workspace))
   legacy-vpc_cidr-block   = var.legacy-vpc_cidr-block
   aws_region              = "eu-west-1"
-  github_opts             = var.github_opts
+  domains                 = var.domains
+  environments            = local.environments
+  github_org              = var.github_org
+  github_repos            = var.github_repos
   ssl_arn                 = var.ssl_arn
   vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
@@ -66,11 +78,13 @@ module "us-east-1" {
   }
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
-  aws_region              = "us-east-1"
-  nodejs_version          = var.nodejs_version
   main_cidr_block         = cidrsubnet(var.main_cidr_block, 8, 1)
   legacy-vpc_cidr-block   = var.legacy-vpc_cidr-block
-  github_opts             = var.github_opts
+  aws_region              = "us-east-1"
+  domains                 = var.domains
+  environments            = local.environments
+  github_org              = var.github_org
+  github_repos            = var.github_repos
   ssl_arn                 = var.ssl_arn
   vpc_peerings            = var.vpc_peerings
   codestar_connection_arn = var.codestar_connection_arn
@@ -79,9 +93,9 @@ module "us-east-1" {
 }
 
 output "eu-west-1_eb-cname" {
-  value = module.eu-west-1.eb_cname
+  value = module.eu-west-1[*].eb_cname
 }
 
 output "us-east-1_eb-cname" {
-  value = module.us-east-1.*.eb_cname
+  value = module.us-east-1[*].eb_cname
 }
