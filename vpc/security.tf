@@ -1,5 +1,5 @@
 resource "aws_security_group" "sellix-eb-security-group" {
-  name        = "${local.tags["Project"]}-security-group"
+  name        = "${var.tags["Project"]}-security-group"
   description = "Allow inbound traffic"
   vpc_id      = aws_vpc.sellix-eb-vpc.id
   ingress {
@@ -17,9 +17,9 @@ resource "aws_security_group" "sellix-eb-security-group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = merge({
-    "Name" = "${local.tags["Project"]}-security-group"
+    "Name" = "${var.tags["Project"]}-security-group"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -35,7 +35,7 @@ resource "aws_security_group_rule" "sellix-eb-vpc-peering-security-group-rule" {
 }
 
 resource "aws_security_group" "sellix-eb-elb-security-group" {
-  name        = "${local.tags["Project"]}-elb-security-group"
+  name        = "${var.tags["Project"]}-elb-security-group"
   description = "Allow ELB inbound traffic"
   vpc_id      = aws_vpc.sellix-eb-vpc.id
   ingress {
@@ -67,8 +67,8 @@ resource "aws_security_group" "sellix-eb-elb-security-group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = merge({
-    "Name" = "${local.tags["Project"]}-elb-security-group"
+    "Name" = "${var.tags["Project"]}-elb-security-group"
     },
-    local.tags
+    var.tags
   )
 }

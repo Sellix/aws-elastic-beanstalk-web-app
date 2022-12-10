@@ -1,31 +1,26 @@
-data "aws_availability_zones" "available" {
-  state = "available"
-}
+data "aws_region" "current" {}
 
 locals {
-  tags = {
-    "Project"     = "sellix-eb-${terraform.workspace}"
-    "Environment" = terraform.workspace
-  }
+  aws_region     = data.aws_region.current.name
   codebuild_envs = distinct([for k in keys(var.environments) : var.environments[k]["versions"]["codebuild"]])
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
     DOMAIN                 = "${join("", regexall(join("|", var.domains), terraform.workspace))}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
-    REDIS_HOST             = aws_elasticache_replication_group.sellix-eb-redis.primary_endpoint_address
+    REDIS_HOST             = var.redis_endpoint
     REDIS_PORT             = 6379
-    REDIS_URL              = "redis://${aws_elasticache_replication_group.sellix-eb-redis.primary_endpoint_address}:6379"
+    REDIS_URL              = "redis://${var.redis_endpoint}:6379"
+    REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
   }
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }*/
-  availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
   vpc = [
     {
       namespace = "aws:ec2:vpc"
       name      = "VPCId"
-      value     = aws_vpc.sellix-eb-vpc.id
+      value     = var.vpc_id
     },
     {
       namespace = "aws:ec2:vpc"
@@ -35,7 +30,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "Subnets"
-      value     = var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet[*].id)) : aws_subnet.sellix-eb-private-subnet[0].id
+      value     = join(",", sort(var.vpc_subnets["private"][*].id)) // var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet[*].id)) : aws_subnet.sellix-eb-private-subnet[0].id
     },
     {
       namespace = "aws:ec2:vpc"
@@ -193,14 +188,14 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBSubnets"
-      value     = join(",", sort(aws_subnet.sellix-eb-public-subnet[*].id))
+      value     = join(",", sort(var.vpc_subnets["public"][*].id))
     }
   ]
   alb = [
     {
       namespace = "aws:elbv2:loadbalancer"
       name      = "SecurityGroups"
-      value     = aws_security_group.sellix-eb-elb-security-group.id
+      value     = var.sgr["elb"].id
     },
     {
       namespace = "aws:elbv2:listener:443"
@@ -215,7 +210,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = var.ssl_arn[var.aws_region][terraform.workspace]
+      value     = var.ssl_arn[local.aws_region][terraform.workspace]
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -231,13 +226,18 @@ locals {
   autoscaling_launch_config = [
     {
       namespace = "aws:autoscaling:launchconfiguration"
+      name      = "DisableIMDSv1",
+      value     = true
+    },
+    {
+      namespace = "aws:autoscaling:launchconfiguration"
       name      = "IamInstanceProfile"
       value     = aws_iam_instance_profile.sellix-eb-ec2-instance-profile.name
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value     = aws_security_group.sellix-eb-security-group.id
+      value     = var.sgr["eb"].id
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -247,7 +247,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "InstanceType"
-      value     = var.is_production ? "t4g.xlarge" : "t4g.medium" //"m5.large" : "t3.medium"
+      value     = var.is_production ? "m6g.large" : "m6g.medium" //"m5.large" : "t3.medium"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -289,7 +289,7 @@ locals {
     {
       namespace = "aws:autoscaling:asg"
       name      = "MaxSize"
-      value     = var.is_production ? "10" : "2"
+      value     = var.is_production ? "8" : "2"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"

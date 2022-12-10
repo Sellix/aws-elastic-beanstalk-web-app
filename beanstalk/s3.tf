@@ -1,9 +1,9 @@
 resource "aws_s3_bucket" "sellix-eb-codepipeline-s3-bucket" {
-  bucket = "${local.tags["Project"]}-${var.aws_region}-codepipeline"
+  bucket = "${var.tags["Project"]}-${local.aws_region}-codepipeline"
   tags = merge({
-    "Name" = "${local.tags["Project"]}-${var.aws_region}-codepipeline-s3-bucket"
+    "Name" = "${var.tags["Project"]}-${local.aws_region}-codepipeline-s3-bucket"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -13,11 +13,11 @@ resource "aws_s3_bucket_acl" "sellix-eb-codepipeline-s3-bucket-acl" {
 }
 
 resource "aws_s3_bucket" "sellix-eb-elb-logs" {
-  bucket = "${local.tags["Project"]}-${var.aws_region}-elb-logs"
+  bucket = "${var.tags["Project"]}-${local.aws_region}-elb-logs"
   tags = merge({
-    "Name" = "${local.tags["Project"]}-${var.aws_region}-elb-logs"
+    "Name" = "${var.tags["Project"]}-${local.aws_region}-elb-logs"
     },
-    local.tags
+    var.tags
   )
 }
 

@@ -1,17 +1,17 @@
 data "aws_elastic_beanstalk_solution_stack" "nodejs" {
-  count       = length(keys(var.environments))
+  for_each    = toset(keys(var.environments))
   most_recent = true
 
-  name_regex = "^64bit Amazon Linux (.*) running Node.js ${var.environments[keys(var.environments)[count.index]]["versions"]["nodejs"]}$"
+  name_regex = "^64bit Amazon Linux (.*) running Node.js ${var.environments[each.value]["versions"]["nodejs"]}$"
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
-  count                  = length(keys(var.environments))
-  name                   = "${local.tags["Project"]}-${keys(var.environments)[count.index]}"
+  for_each               = {for i, env in keys(var.environments) : i => env}
+  name                   = "${var.tags["Project"]}-${each.value}"
   application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[count.index].name
+  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[each.value].name
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"
@@ -75,12 +75,12 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
-    value     = keys(var.environments)[count.index] == "shop-app" ? "/.well-known/health" : "/"
+    value     = each.value == "shop-app" ? "/.well-known/health" : "/"
     resource  = ""
   }
   # environment
   dynamic "setting" {
-    for_each = merge(local.env, var.environments[keys(var.environments)[count.index]]["vars"])
+    for_each = merge(local.env, var.environments[each.value]["vars"])
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key
@@ -112,10 +112,10 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   lifecycle {
     ignore_changes = [setting]
   }
-  tags = local.tags
+  tags = var.tags
 }
 
 resource "aws_elastic_beanstalk_application" "sellix-eb" {
-  name        = local.tags["Project"]
+  name        = var.tags["Project"]
   description = "NodeJS Web Application"
 }

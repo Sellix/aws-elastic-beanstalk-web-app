@@ -1,11 +1,11 @@
 resource "aws_codepipeline" "sellix-eb-codepipeline" {
-  count    = length(keys(var.environments))
-  name     = "${local.tags["Project"]}-${keys(var.environments)[count.index]}-codepipeline"
+  for_each = {for i, env in keys(var.environments) : i => env}
+  name     = "${var.tags["Project"]}-${each.value}-codepipeline"
   role_arn = aws_iam_role.sellix-eb-codepipeline-role.arn
   tags = merge({
-    "Name" = "${local.tags["Project"]}-codepipeline"
+    "Name" = "${var.tags["Project"]}-codepipeline"
     },
-    local.tags
+    var.tags
   )
   artifact_store {
     location = aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.bucket
@@ -22,8 +22,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       output_artifacts = ["sellix-eb-artifacts"]
       configuration = {
         ConnectionArn        = var.codestar_connection_arn
-        FullRepositoryId     = "${var.github_org}/${keys(var.github_repos)[count.index]}"
-        BranchName           = var.github_repos[keys(var.environments)[count.index]]
+        FullRepositoryId     = "${var.github_org}/${keys(var.github_repos)[each.key]}"
+        BranchName           = var.github_repos[each.value]
         DetectChanges        = !var.is_production
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
@@ -40,7 +40,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = length(local.codebuild_envs) > 1 ? aws_codebuild_project.sellix-eb[count.index].name : aws_codebuild_project.sellix-eb[0].name
+        ProjectName = length(local.codebuild_envs) > 1 ? aws_codebuild_project.sellix-eb[each.key].name : aws_codebuild_project.sellix-eb[0].name
       }
     }
   }
@@ -55,7 +55,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       version         = "1"
       configuration = {
         ApplicationName = aws_elastic_beanstalk_application.sellix-eb.name
-        EnvironmentName = aws_elastic_beanstalk_environment.sellix-eb-environment[count.index].name
+        EnvironmentName = aws_elastic_beanstalk_environment.sellix-eb-environment[each.key].name
       }
     }
   }
@@ -63,7 +63,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
 
 resource "aws_codebuild_project" "sellix-eb" {
   count        = length(local.codebuild_envs)
-  name         = "${local.tags["Project"]}-codebuild-${count.index}"
+  name         = "${var.tags["Project"]}-codebuild-${count.index}"
   description  = "CodeBuild"
   service_role = aws_iam_role.sellix-eb-codebuild-role.arn
   artifacts {
@@ -84,8 +84,8 @@ resource "aws_codebuild_project" "sellix-eb" {
     type = "CODEPIPELINE"
   }
   tags = merge({
-    "Name" = "${local.tags["Project"]}-codebuild-project"
+    "Name" = "${var.tags["Project"]}-codebuild-project"
     },
-    local.tags
+    var.tags
   )
 }
