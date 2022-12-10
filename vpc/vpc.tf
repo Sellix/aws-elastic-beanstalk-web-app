@@ -4,9 +4,9 @@ resource "aws_vpc" "sellix-eb-vpc" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = merge({
-    "Name" = "${local.tags["Project"]}-vpc"
+    "Name" = "${var.tags["Project"]}-vpc"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -14,9 +14,9 @@ resource "aws_eip" "sellix-eb-eip" {
   count = var.is_production ? length(local.availability_zones) : 1
   vpc   = "true"
   tags = merge({
-    "Name" = "${local.tags["Project"]}-eip-${element(local.availability_zones, count.index)}"
+    "Name" = "${var.tags["Project"]}-eip-${element(local.availability_zones, count.index)}"
     },
-    local.tags
+    var.tags
   )
   lifecycle {
     create_before_destroy = "true"
@@ -34,9 +34,9 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
   )
   map_public_ip_on_launch = "false"
   tags = merge({
-    "Name" = "${local.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
+    "Name" = "${var.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -51,9 +51,9 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
   )
   map_public_ip_on_launch = "false"
   tags = merge({
-    "Name" = "${local.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
+    "Name" = "${var.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -62,9 +62,9 @@ resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
   allocation_id = element(aws_eip.sellix-eb-eip[*].id, count.index)
   subnet_id     = element(aws_subnet.sellix-eb-public-subnet[*].id, count.index)
   tags = merge({
-    "Name" = "${local.tags["Project"]}-nat-gateway-${element(local.availability_zones, count.index)}"
+    "Name" = "${var.tags["Project"]}-nat-gateway-${element(local.availability_zones, count.index)}"
     },
-    local.tags
+    var.tags
   )
   lifecycle {
     create_before_destroy = "true"
@@ -74,9 +74,9 @@ resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
 resource "aws_internet_gateway" "sellix-eb-internet-gateway" {
   vpc_id = aws_vpc.sellix-eb-vpc.id
   tags = merge({
-    "Name" = "${local.tags["Project"]}-internet-gateway"
+    "Name" = "${var.tags["Project"]}-internet-gateway"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -87,9 +87,9 @@ resource "aws_route_table" "sellix-eb-public-route-table" {
     gateway_id = aws_internet_gateway.sellix-eb-internet-gateway.id
   }
   tags = merge({
-    "Name" = "${local.tags["Project"]}-public-route-table"
+    "Name" = "${var.tags["Project"]}-public-route-table"
     },
-    local.tags
+    var.tags
   )
 }
 
@@ -101,19 +101,19 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     nat_gateway_id = element(aws_nat_gateway.sellix-eb-nat-gateway[*].id, count.index)
   }
   dynamic "route" {
-    for_each = length(lookup(var.vpc_peerings[var.aws_region], terraform.workspace, "")) > 0 ? [1] : []
+    for_each = length(lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")) > 0 ? [1] : []
     content {
       cidr_block                = var.legacy-vpc_cidr-block
-      vpc_peering_connection_id = var.vpc_peerings[var.aws_region][terraform.workspace]
+      vpc_peering_connection_id = var.vpc_peerings[local.aws_region][terraform.workspace]
     }
   }
   lifecycle {
     create_before_destroy = "true"
   }
   tags = merge({
-    "Name" = "${local.tags["Project"]}-private-route-table-${element(local.availability_zones, count.index)}"
+    "Name" = "${var.tags["Project"]}-private-route-table-${element(local.availability_zones, count.index)}"
     },
-    local.tags
+    var.tags
   )
 }
 

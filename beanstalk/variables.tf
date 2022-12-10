@@ -1,9 +1,37 @@
 resource "aws_key_pair" "sellix-eb-keypair" {
-  key_name   = "${local.tags["Project"]}-keypair"
+  key_name   = "${var.tags["Project"]}-keypair"
   public_key = file(var.public_key_path)
   lifecycle {
     ignore_changes = [public_key]
   }
+}
+
+variable "vpc_id" {
+  type    = string
+  default = ""
+}
+
+variable "vpc_subnets" {
+  type    = map(any)
+  default = {}
+}
+
+variable "sgr" {
+  type    = map(any)
+  default = {}
+}
+
+variable "tags" {
+  type    = map(any)
+  default = {}
+}
+
+variable "redis_endpoint" {
+  type = string
+}
+
+variable "redis_read_endpoint" {
+  type = string
 }
 
 variable "aws_access_key" {
@@ -16,27 +44,10 @@ variable "aws_secret_key" {
   default = null
 }
 
-variable "aws_region" {
-  type    = string
-  default = null
-}
-
 variable "public_key_path" {
   type        = string
   description = "ssh key"
   default     = "~/.ssh/id_rsa.pub"
-}
-
-variable "main_cidr_block" {
-  type        = string
-  description = "main cidr"
-  default     = null
-}
-
-variable "legacy-vpc_cidr-block" {
-  type        = string
-  description = "legacy vpc cidr"
-  default     = null
 }
 
 variable "github_org" {
@@ -54,12 +65,6 @@ variable "github_repos" {
 variable "ssl_arn" {
   type        = map(any)
   description = "SSL Certificate ARN"
-  default     = {}
-}
-
-variable "vpc_peerings" {
-  type        = map(any)
-  description = "VPC Peering Ids"
   default     = {}
 }
 

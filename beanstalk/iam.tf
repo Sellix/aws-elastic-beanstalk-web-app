@@ -1,4 +1,23 @@
-data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
+data "aws_iam_policy_document" "sellix-codepipeline-eb-deploy-policy-document" {
+  statement {
+    sid    = "CodePipelineDeployElasticBeanstalk"
+    effect = "Allow"
+    actions = [
+      "elasticbeanstalk:CreateApplicationVersion",
+      "elasticbeanstalk:DescribeApplicationVersions",
+      "elasticbeanstalk:DescribeEnvironments",
+      "elasticbeanstalk:UpdateEnvironment",
+      "elasticbeanstalk:ValidateConfigurationSettings"
+    ]
+    resources = [
+      aws_elastic_beanstalk_application.sellix-eb.arn,
+      join(",", [for _, env in aws_elastic_beanstalk_environment.sellix-eb-environment : "arn:aws:elasticbeanstalk:${data.aws_region.current.name}:*:environment/${var.tags["Project"]}/${env.name}"]),
+    ]
+
+  }
+}
+
+data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
   statement {
     sid = "EBRequirements"
     actions = [
@@ -70,7 +89,6 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
       "elasticloadbalancing:RegisterTargets",
       "elasticloadbalancing:DeregisterTargets",
       "iam:ListRoles",
-      "iam:PassRole",
       "codebuild:CreateProject",
       "codebuild:DeleteProject",
       "codebuild:BatchGetBuilds",
@@ -80,21 +98,8 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     effect    = "Allow"
     resources = ["*"]
   }
+
   statement {
-    sid = "BucketAccess"
-    actions = [
-      "s3:Get*",
-      "s3:List*",
-      "s3:PutObject",
-      "s3:DeleteObject"
-    ]
-    effect = "Allow"
-    resources = [
-      "arn:aws:s3:::elasticbeanstalk-*",
-      "arn:aws:s3:::elasticbeanstalk-*/*"
-    ]
-  }
-  /* statement {
     sid = "XRayAccess"
     actions = [
       "xray:PutTraceSegments",
@@ -103,9 +108,24 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
       "xray:GetSamplingTargets",
       "xray:GetSamplingStatisticSummaries"
     ]
-    effect   = "Allow"
+    effect    = "Allow"
     resources = ["*"]
-  }*/
+  }
+
+  statement {
+    sid    = "AllowCloudformationReadOperationsOnElasticBeanstalkStacks"
+    effect = "Allow"
+    actions = [
+      "cloudformation:DescribeStackResource",
+      "cloudformation:DescribeStackResources",
+      "cloudformation:DescribeStacks"
+    ]
+    resources = [
+      "arn:aws:cloudformation:*:*:stack/awseb-*",
+      "arn:aws:cloudformation:*:*:stack/eb-*"
+    ]
+  }
+
   statement {
     sid = "CloudWatchLogsAccess"
     actions = [
@@ -118,44 +138,84 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     ]
     effect = "Allow"
     resources = [
-      "arn:aws:logs:*:*:log-group:/aws/elasticbeanstalk*"
+      "arn:aws:logs:*:*:log-group:/aws/elasticbeanstalk/${var.tags["Project"]}-*/var/log/*"
     ]
   }
+
   statement {
-    sid = "ElasticBeanstalkHealthAccess"
+    sid = "AllowPassRole"
     actions = [
-      "elasticbeanstalk:*"
+      "iam:PassRole"
+    ]
+    resources = [
+      aws_iam_role.sellix-eb-ec2-role.arn
     ]
     effect = "Allow"
-    resources = [
-      "arn:aws:elasticbeanstalk:*:*:application/*",
-      "arn:aws:elasticbeanstalk:*:*:environment/*"
-    ]
   }
 }
 
-/* data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
+data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
+  statement {
+    sid = "BucketAccess"
+    actions = [
+      "s3:Get*",
+      "s3:List*",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:s3:::elasticbeanstalk-${data.aws_region.current.name}*",
+      "arn:aws:s3:::elasticbeanstalk-${data.aws_region.current.name}*/*"
+    ]
+    condition {
+      test = "StringEquals"
+      variable = "ec2:ResourceTag/Project"
+      values = [var.tags["Project"]]
+    }
+  }
+
+  statement {
+    sid = "ElasticBeanstalkHealthAccess"
+    actions = [
+      "elasticbeanstalk:PutInstanceStatistics"
+    ]
+    effect = "Allow"
+    resources = [
+      join(",", [for _, env in aws_elastic_beanstalk_environment.sellix-eb-environment : "arn:aws:elasticbeanstalk:${data.aws_region.current.name}:*:environment/${var.tags["Project"]}/${env.name}"]),
+    ]
+    condition {
+      test = "StringEquals"
+      variable = "ec2:ResourceTag/Project"
+      values = [var.tags["Project"]]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "sellix-eb-ec2-policy-document" {
   statement {
     sid = ""
     actions = [
-      "elasticbeanstalk:*",
-      "ec2:*",
-      "elasticloadbalancing:*",
-      "autoscaling:*",
-      "cloudwatch:*",
-      "s3:*",
-      "sns:*",
-      "cloudformation:*",
-      "rds:*",
-      "sqs:*",
-      "ecs:*",
-      "iam:PassRole",
-      "logs:PutRetentionPolicy",
+      "sts:AssumeRole",
     ]
-    resources = ["*"]
-    effect    = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+    effect = "Allow"
   }
-} */
+  statement {
+    sid = ""
+    actions = [
+      "sts:AssumeRole",
+    ]
+    principals {
+      type        = "Service"
+      identifiers = ["ssm.amazonaws.com"]
+    }
+    effect = "Allow"
+  }
+}
 
 data "aws_iam_policy_document" "sellix-eb-elb-policy-document" {
   statement {
@@ -164,7 +224,7 @@ data "aws_iam_policy_document" "sellix-eb-elb-policy-document" {
       "s3:PutObject",
     ]
     resources = [
-      "arn:aws:s3:::${local.tags["Project"]}-${var.aws_region}-elb-logs/*"
+      "arn:aws:s3:::${var.tags["Project"]}-${local.aws_region}-elb-logs/*"
     ]
     principals {
       type        = "AWS"
@@ -194,34 +254,9 @@ data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
       "sns:Publish"
     ]
     resources = [
-      data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${var.aws_region}_chatbot-arn"],
-      "arn:aws:sns:eu-west-1:671586216466:ElasticBeanstalkNotifications*"
+      data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"],
+      join("", [for _, env in aws_elastic_beanstalk_environment.sellix-eb-environment : "arn:aws:sns:${data.aws_region.current.name}:*:ElasticBeanstalkNotifications-Environment-${env.name}*"]),
     ]
-    effect = "Allow"
-  }
-}
-
-data "aws_iam_policy_document" "sellix-eb-ec2-policy-document" {
-  statement {
-    sid = ""
-    actions = [
-      "sts:AssumeRole",
-    ]
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-    effect = "Allow"
-  }
-  statement {
-    sid = ""
-    actions = [
-      "sts:AssumeRole",
-    ]
-    principals {
-      type        = "Service"
-      identifiers = ["ssm.amazonaws.com"]
-    }
     effect = "Allow"
   }
 }
@@ -342,7 +377,7 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-poli
   statement {
     sid = ""
     actions = [
-      "codestar-connections:*"
+      "codestar-connections:UseConnection"
     ]
     effect = "Allow"
     resources = [
@@ -351,85 +386,100 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-poli
   }
 }
 
-data "aws_elb_service_account" "sellix-eb-elb-service" {
-  count = 1
-}
+data "aws_elb_service_account" "sellix-eb-elb-service" {}
 
 resource "aws_iam_role" "sellix-eb-codepipeline-role" {
-  name               = "${local.tags["Project"]}-${var.aws_region}-codepipeline-role"
+  name               = "${var.tags["Project"]}-${local.aws_region}-codepipeline-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-eb-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-eb-service-role" {
-  name               = "${local.tags["Project"]}-${var.aws_region}-service-role"
+  name               = "${var.tags["Project"]}-${local.aws_region}-service-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-eb-service-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-eb-ec2-role" {
-  name               = "${local.tags["Project"]}-${var.aws_region}-ec2-role"
+  name               = "${var.tags["Project"]}-${local.aws_region}-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-eb-ec2-policy-document.json
 }
 
 resource "aws_iam_instance_profile" "sellix-eb-ec2-instance-profile" {
-  name = "${local.tags["Project"]}-${var.aws_region}-ec2-instance-profile"
+  name = "${var.tags["Project"]}-${local.aws_region}-ec2-instance-profile"
   role = aws_iam_role.sellix-eb-ec2-role.name
 }
 
 resource "aws_iam_role_policy" "sellix-eb-service-sns-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-service-sns-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-service-sns-policy"
   role   = aws_iam_role.sellix-eb-service-role.id
   policy = data.aws_iam_policy_document.sellix-eb-service-sns-policy-document.json
 }
 
+resource "aws_iam_role_policy" "sellix-eb-service-policy" {
+  name   = "${var.tags["Project"]}-${local.aws_region}-service-policy"
+  role   = aws_iam_role.sellix-eb-service-role.id
+  policy = data.aws_iam_policy_document.sellix-eb-service-req-policy-document.json
+}
+
 resource "aws_iam_role_policy" "sellix-eb-default-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-default-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-default-policy"
   role   = aws_iam_role.sellix-eb-ec2-role.id
   policy = data.aws_iam_policy_document.sellix-eb-default-policy-document.json
 }
 
 resource "aws_iam_role" "sellix-eb-codebuild-role" {
-  name               = "${local.tags["Project"]}-${var.aws_region}-codebuild-role"
+  name               = "${var.tags["Project"]}-${local.aws_region}-codebuild-role"
   assume_role_policy = data.aws_iam_policy_document.sellix-eb-codebuild-assumerole-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codebuild-permissions-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-codebuild-permissions-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-codebuild-permissions-policy"
   path   = "/service-role/"
   policy = data.aws_iam_policy_document.sellix-eb-codebuild-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codebuild-policy" {
-  name        = "${local.tags["Project"]}-${var.aws_region}-codebuild-policy"
+  name        = "${var.tags["Project"]}-${local.aws_region}-codebuild-policy"
   description = "CodeBuild access policy"
   policy      = data.aws_iam_policy_document.sellix-eb-codebuild-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codebuild-codestar-connection-policy" {
-  name        = "${local.tags["Project"]}-${var.aws_region}-codebuild-codestar-connection-policy"
+  name        = "${var.tags["Project"]}-${local.aws_region}-codebuild-codestar-connection-policy"
   description = "CodeBuild CodeStar Connection policy"
   policy      = data.aws_iam_policy_document.sellix-eb-codebuild-codestar-connection-policy-document.json
 }
 
+resource "aws_iam_policy" "sellix-eb-codepipeline-beanstalk-permissions-policy" {
+  name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-beanstalk-permissions-policy"
+  policy = data.aws_iam_policy_document.sellix-codepipeline-eb-deploy-policy-document.json
+}
+
 resource "aws_iam_policy" "sellix-eb-codepipeline-s3-permissions-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-s3-permissions-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-s3-permissions-policy"
   policy = data.aws_iam_policy_document.sellix-eb-codepipeline-s3-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codepipeline-codebuild-permissions-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-codebuild-permissions-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-codebuild-permissions-policy"
   policy = data.aws_iam_policy_document.sellix-eb-codepipeline-codebuild-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codepipeline-codestar-permissions-policy" {
-  name   = "${local.tags["Project"]}-${var.aws_region}-codepipeline-codestar-permissions-policy"
+  name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-codestar-permissions-policy"
   policy = data.aws_iam_policy_document.sellix-eb-codepipeline-codestar-permissions-policy-document.json
 }
 
-resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-policy-attachment" {
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk"
+resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-beanstalk-deploy-policy-attachment" {
+  policy_arn = aws_iam_policy.sellix-eb-codepipeline-beanstalk-permissions-policy.arn
   role       = aws_iam_role.sellix-eb-codepipeline-role.id
 }
 
+/*resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-policy-attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk"
+  role       = aws_iam_role.sellix-eb-codepipeline-role.id
+}*/
+
+/*
 resource "aws_iam_role_policy_attachment" "sellix-eb-enhanced-health-policy-attachment" {
   role       = aws_iam_role.sellix-eb-service-role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth"
@@ -439,6 +489,7 @@ resource "aws_iam_role_policy_attachment" "sellix-eb-service-policy-attachment" 
   role       = aws_iam_role.sellix-eb-service-role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService"
 }
+*/
 
 resource "aws_iam_role_policy_attachment" "sellix-eb-web-tier-policy-attachment" {
   role       = aws_iam_role.sellix-eb-ec2-role.name

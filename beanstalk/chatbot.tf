@@ -12,7 +12,7 @@ data "terraform_remote_state" "sellix-eb-chatbot-terraform-state" {
 
 resource "aws_codestarnotifications_notification_rule" "sellix-eb-codestarnotifications" {
   count       = length(var.environments)
-  name        = "${local.tags["Project"]}-${var.aws_region}-${keys(var.environments)[count.index]}-chatbot"
+  name        = "${var.tags["Project"]}-${local.aws_region}-${keys(var.environments)[count.index]}-chatbot"
   detail_type = "BASIC"
   resource    = aws_codepipeline.sellix-eb-codepipeline[count.index].arn
   status      = "ENABLED"
@@ -24,6 +24,6 @@ resource "aws_codestarnotifications_notification_rule" "sellix-eb-codestarnotifi
     "codepipeline-pipeline-manual-approval-succeeded",
   ]
   target {
-    address = data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${var.aws_region}_chatbot-arn"]
+    address = data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"]
   }
 }
