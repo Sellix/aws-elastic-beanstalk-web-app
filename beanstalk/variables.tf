@@ -86,12 +86,6 @@ variable "environments" {
   default     = null
 }
 
-variable "domains" {
-  type        = list(any)
-  description = "Application Domains"
-  default     = null
-}
-
 variable "is_production" {
   type        = bool
   description = "Environment Boolean"

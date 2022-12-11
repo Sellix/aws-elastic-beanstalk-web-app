@@ -94,7 +94,6 @@ module "eb-eu-west-1" {
   redis_read_endpoint     = aws_elasticache_replication_group.sellix-eb-redis-eu.primary_endpoint_address
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
-  domains                 = var.domains
   environments            = local.environments
   github_org              = var.github_org
   github_repos            = var.github_repos
@@ -137,7 +136,6 @@ module "eb-us-east-1" {
   redis_read_endpoint     = aws_elasticache_replication_group.sellix-eb-redis-us[count.index].primary_endpoint_address
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
-  domains                 = var.domains
   environments            = local.environments
   github_org              = var.github_org
   github_repos            = var.github_repos

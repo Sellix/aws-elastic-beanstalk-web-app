@@ -79,9 +79,9 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
     resource  = ""
   }
   setting {
-      namespace = "aws:autoscaling:launchconfiguration"
-      name      = "InstanceType"
-      value     = var.is_production ? "m6g.large" : "m6g.medium"
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = var.is_production ? "m6g.large" : "m6g.medium"
   }
 
   # environment
