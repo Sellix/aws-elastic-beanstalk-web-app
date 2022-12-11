@@ -61,9 +61,3 @@ variable "environments" {
   description = "Environments"
   default     = null
 }
-
-variable "domains" {
-  type        = list(any)
-  description = "Application Domains"
-  default     = null
-}

@@ -3,17 +3,17 @@ data "aws_region" "current" {}
 locals {
   aws_region     = data.aws_region.current.name
   codebuild_envs = distinct([for k in keys(var.environments) : var.environments[k]["versions"]["codebuild"]])
-  envs_map = { for i, env in keys(var.environments) : tonumber(i) => env }
-  env = {
+  envs_map       = { for i, env in keys(var.environments) : tonumber(i) => env }
+  env = { for _, env_name in local.envs_map : env_name => {
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = "${join("", regexall(join("|", var.domains), terraform.workspace))}.${var.is_production ? "io" : "gg"}"
+    DOMAIN                 = "${var.environments[env_name]["domain"]}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
     REDIS_HOST             = var.redis_endpoint
     REDIS_PORT             = 6379
     REDIS_URL              = "redis://${var.redis_endpoint}:6379"
     REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
-  }
+  } }
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }*/
