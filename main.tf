@@ -39,7 +39,7 @@ provider "aws" {
 locals {
   is_production = length(regexall("production", terraform.workspace)) > 0
   environments  = { for k, v in var.environments : k => v if tobool(v.enabled) }
-  is_redis    = length({ for k, v in local.environments : k=>v if tobool(v.redis) })>0
+  is_redis      = length({ for k, v in local.environments : k => v if tobool(v.redis) }) > 0
   eu_main_cidr  = cidrsubnet(var.main_cidr_block, 8, (local.is_production ? 0 : 2) + length(terraform.workspace))
   us_main_cidr  = cidrsubnet(var.main_cidr_block, 8, 1)
   tags = {
