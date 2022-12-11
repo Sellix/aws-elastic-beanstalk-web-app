@@ -86,7 +86,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
   # environment
   dynamic "setting" {
-    for_each = merge(local.env, var.environments[each.value]["vars"])
+    for_each = merge(local.env[each.value], var.environments[each.value]["vars"])
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key
