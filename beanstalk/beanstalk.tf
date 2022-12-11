@@ -6,7 +6,7 @@ data "aws_elastic_beanstalk_solution_stack" "nodejs" {
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
-  for_each               = {for i, env in keys(var.environments) : i => env}
+  for_each               = local.envs_map
   name                   = "${var.tags["Project"]}-${each.value}"
   application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
@@ -78,6 +78,12 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
     value     = each.value == "shop-app" ? "/.well-known/health" : "/"
     resource  = ""
   }
+  setting {
+      namespace = "aws:autoscaling:launchconfiguration"
+      name      = "InstanceType"
+      value     = var.is_production ? "m6g.large" : "m6g.medium"
+  }
+
   # environment
   dynamic "setting" {
     for_each = merge(local.env, var.environments[each.value]["vars"])

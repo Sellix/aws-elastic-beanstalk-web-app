@@ -3,6 +3,7 @@ data "aws_region" "current" {}
 locals {
   aws_region     = data.aws_region.current.name
   codebuild_envs = distinct([for k in keys(var.environments) : var.environments[k]["versions"]["codebuild"]])
+  envs_map = { for i, env in keys(var.environments) : tonumber(i) => env }
   env = {
     ELASTIC_BEANSTALK_PORT = 8080
     DOMAIN                 = "${join("", regexall(join("|", var.domains), terraform.workspace))}.${var.is_production ? "io" : "gg"}"
@@ -200,7 +201,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "ListenerEnabled"
-      value     = "true"
+      value     = tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
     },
     {
       namespace = "aws:elbv2:listener:443"
@@ -210,7 +211,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = var.ssl_arn[local.aws_region][terraform.workspace]
+      value     = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "false")
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -243,11 +244,6 @@ locals {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SSHSourceRestriction"
       value     = "tcp, 22, 22, 127.0.0.1/32"
-    },
-    {
-      namespace = "aws:autoscaling:launchconfiguration"
-      name      = "InstanceType"
-      value     = var.is_production ? "m6g.large" : "m6g.medium" //"m5.large" : "t3.medium"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -294,7 +290,7 @@ locals {
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"
       name      = "RollingUpdateType"
-      value     = "Immutable" # var.is_production ? "Health" : "Immutable"
+      value     = "Immutable"
     },
     {
       namespace = "aws:autoscaling:updatepolicy:rollingupdate"

@@ -24,6 +24,8 @@ resource "aws_elasticache_global_replication_group" "sellix-eb-global-datastore"
 resource "aws_elasticache_replication_group" "sellix-eb-redis-us" {
   provider                    = aws.us-east-1
   count                       = local.is_production ? 1 : 0
+  transit_encryption_enabled  = true
+  at_rest_encryption_enabled  = true
   replication_group_id        = "${local.tags["Project"]}-redis"
   description                 = "${local.tags["Project"]}-redis"
   engine                      = "redis"

@@ -1,15 +1,14 @@
 resource "aws_codepipeline" "sellix-eb-codepipeline" {
-  for_each = {for i, env in keys(var.environments) : i => env}
+  for_each = local.envs_map
   name     = "${var.tags["Project"]}-${each.value}-codepipeline"
   role_arn = aws_iam_role.sellix-eb-codepipeline-role.arn
-  tags = merge({
-    "Name" = "${var.tags["Project"]}-codepipeline"
-    },
-    var.tags
-  )
   artifact_store {
     location = aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.bucket
     type     = "S3"
+    encryption_key {
+      id   = aws_kms_key.sellix-eb-kms-key.arn
+      type = "KMS"
+    }
   }
   stage {
     name = "Source"
@@ -59,13 +58,19 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       }
     }
   }
+  tags = merge({
+    "Name" = "${var.tags["Project"]}-codepipeline"
+    },
+    var.tags
+  )
 }
 
 resource "aws_codebuild_project" "sellix-eb" {
-  count        = length(local.codebuild_envs)
-  name         = "${var.tags["Project"]}-codebuild-${count.index}"
-  description  = "CodeBuild"
-  service_role = aws_iam_role.sellix-eb-codebuild-role.arn
+  count          = length(local.codebuild_envs)
+  name           = "${var.tags["Project"]}-codebuild-${count.index}"
+  description    = "CodeBuild"
+  service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
+  encryption_key = aws_kms_key.sellix-eb-kms-key.arn
   artifacts {
     type = "CODEPIPELINE"
   }
