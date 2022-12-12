@@ -48,6 +48,18 @@ locals {
   }
 }
 
+data "terraform_remote_state" "sellix-eb-redis-terraform-state" {
+  backend = "s3"
+  config = {
+    bucket     = "sellix-deployments"
+    key        = "eb-redis.tfstate"
+    region     = "eu-west-1"
+    profile    = "sellix-terraform"
+    access_key = var.aws_access_key
+    secret_key = var.aws_secret_key
+  }
+}
+
 /* https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc
 data "aws_vpcs" "eb-vpcs" {
   tags = {
@@ -90,8 +102,8 @@ module "eb-eu-west-1" {
   vpc_id                  = module.vpc-eu-west-1.vpc_id
   vpc_subnets             = module.vpc-eu-west-1.subnets
   sgr                     = module.vpc-eu-west-1.sgr
-  redis_endpoint          = aws_elasticache_replication_group.sellix-eb-redis-eu.primary_endpoint_address
-  redis_read_endpoint     = aws_elasticache_replication_group.sellix-eb-redis-eu.primary_endpoint_address
+  redis_endpoint          = data.terraform_remote_state.sellix-eb-redis-terraform-state.outputs["writer"]
+  redis_read_endpoint     = data.terraform_remote_state.sellix-eb-redis-terraform-state.outputs["readers"]["eu-west-1"]
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -132,8 +144,8 @@ module "eb-us-east-1" {
   vpc_subnets             = module.vpc-us-east-1[count.index].subnets
   sgr                     = module.vpc-us-east-1[count.index].sgr
   tags                    = local.tags
-  redis_endpoint          = aws_elasticache_replication_group.sellix-eb-redis-eu.primary_endpoint_address
-  redis_read_endpoint     = aws_elasticache_replication_group.sellix-eb-redis-us[count.index].primary_endpoint_address
+  redis_endpoint          = data.terraform_remote_state.sellix-eb-redis-terraform-state.outputs["writer"]
+  redis_read_endpoint     = data.terraform_remote_state.sellix-eb-redis-terraform-state.outputs["readers"]["us-east-1"]
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
