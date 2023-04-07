@@ -61,3 +61,19 @@ variable "environments" {
   description = "Environments"
   default     = null
 }
+
+variable "global_accelerator" {
+  type        = bool
+  description = "enable aws global accelerator on beanstalk"
+  default     = false
+}
+
+variable "redis-readers" {
+  type    = map(any)
+  default = { "eu-west-1" : [], "us-east-1" : [] }
+}
+
+variable "redis-writer" {
+  type    = string
+  default = ""
+}

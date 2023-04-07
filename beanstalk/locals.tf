@@ -14,6 +14,11 @@ locals {
     REDIS_URL              = "redis://${var.redis_endpoint}:6379"
     REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
   } }
+  is_ssl =  tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
+  eb_processes = tostring(local.is_ssl) ? {
+    "https": {"valid": tostring(local.is_ssl), "protocol": "https", "port":"443"}
+  } : {"default": {"valid": "true", "protocol":"http", "port": "80"}}
+
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }*/
@@ -39,12 +44,7 @@ locals {
       value     = "false"
     }
   ]
-  environment = [
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
-      name      = "DeregistrationDelay"
-      value     = "20"
-    },
+  environment = flatten([
     {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "EnvironmentType"
@@ -60,42 +60,42 @@ locals {
       name      = "ServiceRole"
       value     = aws_iam_role.sellix-eb-service-role.arn
     },
+    [for process, options in local.eb_processes : tobool(options.valid) ? [{
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
+      name      = "DeregistrationDelay"
+      value     = "20"
+    },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "HealthyThresholdCount"
       value     = "3"
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "Port"
-      value     = "80"
+      value     = options.port
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "Protocol"
-      value     = "HTTP"
+      value     = upper(options.protocol)
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
-      name      = "UnhealthyThresholdCount"
-      value     = "5"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "StickinessEnabled"
       value     = "true"
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "StickinessLBCookieDuration"
       value     = "86400"
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "StickinessType"
       value     = "lb_cookie"
-    }
-  ]
+    }]:[]]
+  ])
   cloudwatch = [
     {
       namespace = "aws:elasticbeanstalk:cloudwatch:logs"
@@ -134,16 +134,23 @@ locals {
       name      = "IgnoreHealthCheck"
       value     = "false"
     },
+    [for process, options in local.eb_processes : tobool(options.valid) ? [
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "HealthCheckInterval"
       value     = "15"
     },
     {
-      namespace = "aws:elasticbeanstalk:environment:process:default"
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "HealthCheckTimeout"
       value     = "5"
     },
+    {
+      namespace = "aws:elasticbeanstalk:environment:process:${process}"
+      name      = "UnhealthyThresholdCount"
+      value     = "5"
+    },
+    ]:[]]
   ]
   command = [
     {
@@ -201,7 +208,12 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "ListenerEnabled"
-      value     = tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
+      value     = local.is_ssl
+    },
+    {
+      namespace = "aws:elbv2:listener:443"
+      name      = "DefaultProcess"
+      value     = "https"
     },
     {
       namespace = "aws:elbv2:listener:443"
