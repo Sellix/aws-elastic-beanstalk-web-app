@@ -10,7 +10,7 @@ resource "aws_security_group" "sellix-eb-security-group" {
     cidr_blocks = [var.main_cidr_block]
   }
   egress {
-    description = "allow vpc egress traffic"
+    description = "allow egress traffic"
     from_port   = 0
     to_port     = 0
     protocol    = -1

@@ -57,6 +57,7 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
   )
 }
 
+/*
 resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
   count         = var.is_production ? length(local.availability_zones) : 1
   allocation_id = element(aws_eip.sellix-eb-eip[*].id, count.index)
@@ -69,6 +70,46 @@ resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
   lifecycle {
     create_before_destroy = "true"
   }
+}
+*/
+resource "aws_network_interface" "fuck-nat-if" {
+  count = var.is_production ? length(local.availability_zones) : 1
+  subnet_id       = aws_subnet.sellix-eb-public-subnet[count.index].id
+  security_groups = [aws_security_group.sellix-eb-security-group.id]
+                                                                                      
+  source_dest_check = false
+}
+                                                                                      
+                                                                                      
+resource "aws_instance" "fuck-nat" {
+  count = length(aws_network_interface.fuck-nat-if)
+  ami           = "ami-044fc100ae64a0544"
+  instance_type = "t4g.nano"
+  metadata_options {
+    http_endpoint = "disabled" // no needed
+    http_tokens = "required"
+  }
+
+  network_interface {
+    network_interface_id = aws_network_interface.fuck-nat-if[count.index].id
+    device_index         = 0
+  }
+
+  tags = merge({
+    "Name" = "${var.tags["Project"]}-fuck-nat-${element(local.availability_zones, count.index)}"
+    },
+    var.tags
+  )
+
+  lifecycle {
+    create_before_destroy = "true"
+  }
+}                                                                                     
+
+resource "aws_eip" "fuck-nat-eip" {
+  count = length(aws_instance.fuck-nat)
+  instance = aws_instance.fuck-nat[count.index].id
+  vpc      = true
 }
 
 resource "aws_internet_gateway" "sellix-eb-internet-gateway" {
@@ -98,7 +139,8 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
   vpc_id = aws_vpc.sellix-eb-vpc.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = element(aws_nat_gateway.sellix-eb-nat-gateway[*].id, count.index)
+    // nat_gateway_id = aws_nat_gateway.sellix-eb-nat-gateway[count.index].id
+    network_interface_id = aws_instance.fuck-nat[count.index].primary_network_interface_id
   }
   dynamic "route" {
     for_each = length(lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")) > 0 ? [1] : []
