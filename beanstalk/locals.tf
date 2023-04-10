@@ -14,10 +14,10 @@ locals {
     REDIS_URL              = "redis://${var.redis_endpoint}:6379"
     REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
   } }
-  is_ssl =  tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
+  is_ssl = tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
   eb_processes = tostring(local.is_ssl) ? {
-    "https": {"valid": tostring(local.is_ssl), "protocol": "https", "port":"443"}
-  } : {"default": {"valid": "true", "protocol":"http", "port": "80"}}
+    "https" : { "valid" : tostring(local.is_ssl), "protocol" : "https", "port" : "443" }
+  } : { "default" : { "valid" : "true", "protocol" : "http", "port" : "80" } }
 
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
@@ -36,15 +36,16 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "Subnets"
-      value     = join(",", sort(var.vpc_subnets["private"][*].id)) // var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet[*].id)) : aws_subnet.sellix-eb-private-subnet[0].id
+      value     = var.is_production ? join(",", sort(var.vpc_subnets["private"][*])) : join(",", sort(var.vpc_subnets["public"][*])) // var.is_production ? join(",", sort(aws_subnet.sellix-eb-private-subnet[*].id)) : aws_subnet.sellix-eb-private-subnet[0].id
     },
     {
       namespace = "aws:ec2:vpc"
       name      = "AssociatePublicIpAddress"
-      value     = "false"
+      value     = var.is_production ? tostring(false) : tostring(true)
     }
   ]
-  environment = flatten([
+
+  environment = var.is_production ? concat([
     {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "EnvironmentType"
@@ -59,43 +60,51 @@ locals {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "ServiceRole"
       value     = aws_iam_role.sellix-eb-service-role.arn
-    },
-    [for process, options in local.eb_processes : tobool(options.valid) ? [{
+    }
+    ],
+    flatten([for process, options in local.eb_processes : tobool(options.valid) ? [{
       namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "DeregistrationDelay"
       value     = "20"
-    },
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "HealthyThresholdCount"
+        value     = "3"
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "Port"
+        value     = options.port
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "Protocol"
+        value     = upper(options.protocol)
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "StickinessEnabled"
+        value     = "true"
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "StickinessLBCookieDuration"
+        value     = "86400"
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "StickinessType"
+        value     = "lb_cookie"
+    }] : []])
+    ) : [
     {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "HealthyThresholdCount"
-      value     = "3"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "Port"
-      value     = options.port
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "Protocol"
-      value     = upper(options.protocol)
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "StickinessEnabled"
-      value     = "true"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "StickinessLBCookieDuration"
-      value     = "86400"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "StickinessType"
-      value     = "lb_cookie"
-    }]:[]]
-  ])
+      namespace = "aws:elasticbeanstalk:environment"
+      name      = "EnvironmentType"
+      value     = "SingleInstance"
+    }
+  ]
+
   cloudwatch = [
     {
       namespace = "aws:elasticbeanstalk:cloudwatch:logs"
@@ -128,30 +137,31 @@ locals {
       value     = "7"
     },
   ]
-  healthcheck = [
+  healthcheck = concat([
     {
       namespace = "aws:elasticbeanstalk:command"
       name      = "IgnoreHealthCheck"
       value     = "false"
     },
-    [for process, options in local.eb_processes : tobool(options.valid) ? [
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "HealthCheckInterval"
-      value     = "15"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "HealthCheckTimeout"
-      value     = "5"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:environment:process:${process}"
-      name      = "UnhealthyThresholdCount"
-      value     = "5"
-    },
-    ]:[]]
-  ]
+    ],
+    flatten([for process, options in local.eb_processes : tobool(options.valid) ? [
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "HealthCheckInterval"
+        value     = "15"
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "HealthCheckTimeout"
+        value     = "5"
+      },
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:${process}"
+        name      = "UnhealthyThresholdCount"
+        value     = "5"
+      },
+    ] : []])
+  )
   command = [
     {
       namespace = "aws:elasticbeanstalk:command"
@@ -196,14 +206,14 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBSubnets"
-      value     = join(",", sort(var.vpc_subnets["public"][*].id))
+      value     = join(",", sort(var.vpc_subnets["public"][*]))
     }
   ]
   alb = [
     {
       namespace = "aws:elbv2:loadbalancer"
       name      = "SecurityGroups"
-      value     = var.sgr["elb"].id
+      value     = aws_security_group.sellix-eb-elb-security-group.id
     },
     {
       namespace = "aws:elbv2:listener:443"
@@ -250,7 +260,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value     = var.sgr["eb"].id
+      value     = aws_security_group.sellix-eb-security-group.id
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"

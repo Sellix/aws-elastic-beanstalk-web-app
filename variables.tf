@@ -14,10 +14,16 @@ variable "main_cidr_block" {
   default     = "172.0.0.0/8"
 }
 
-variable "legacy-vpc_cidr-block" {
+variable "legacy-vpc-cidr-block" {
   type        = string
   description = "legacy vpc cidr"
   default     = "10.192.0.0/16"
+}
+
+variable "legacy-vpc-sg" {
+  type        = string
+  description = "legacy vpc sg id"
+  default     = "sg-0e0341d00f96b7cc0"
 }
 
 variable "github_org" {
@@ -62,18 +68,20 @@ variable "environments" {
   default     = null
 }
 
-variable "global_accelerator" {
+variable "is_global_accelerator" {
   type        = bool
   description = "enable aws global accelerator on beanstalk"
   default     = false
 }
 
-variable "redis-readers" {
-  type    = map(any)
-  default = { "eu-west-1" : [], "us-east-1" : [] }
+variable "redis_port" {
+  type        = number
+  description = "Redis listening port"
+  default     = 6379
 }
 
-variable "redis-writer" {
-  type    = string
-  default = ""
+variable "redis_transit_encryption_enabled" {
+  type        = bool
+  description = "Redis transit encryption"
+  default     = true
 }

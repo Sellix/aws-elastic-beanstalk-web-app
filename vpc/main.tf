@@ -9,13 +9,25 @@ terraform {
 
 data "aws_availability_zones" "available" {
   state = "available"
+  filter {
+    name   = "opt-in-status"
+    values = ["opted-in", "opt-in-not-required"]
+  }
 }
 
 data "aws_region" "current" {}
 
 locals {
-  availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
-  aws_region         = data.aws_region.current.name
+  filtered_azs = [
+    for az in var.azs : az
+    if contains(data.aws_availability_zones.available.names, az)
+  ]
+  availability_zones = (length(local.filtered_azs) == length(var.azs) ?
+    local.filtered_azs :
+  [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]])
+
+  aws_region = data.aws_region.current.name
+  is_peering = length(lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")) > 0
 }
 
 variable "tags" {
@@ -23,9 +35,21 @@ variable "tags" {
   default = {}
 }
 
-variable "legacy-vpc_cidr-block" {
+variable "azs" {
+  type        = list(string)
+  description = "chosen azs"
+  default     = []
+}
+
+variable "legacy-vpc-cidr-block" {
   type        = string
   description = "legacy vpc cidr"
+  default     = null
+}
+
+variable "legacy-vpc-sg" {
+  type        = string
+  description = "legacy vpc sg id"
   default     = null
 }
 
@@ -53,18 +77,14 @@ output "vpc_id" {
 
 output "subnets" {
   value = {
-    "public" : aws_subnet.sellix-eb-public-subnet[*],
-    "private" : aws_subnet.sellix-eb-private-subnet[*]
-  }
-}
-
-output "sgr" {
-  value = {
-    "eb" : aws_security_group.sellix-eb-security-group,
-    "elb" : aws_security_group.sellix-eb-elb-security-group
+    "public" : aws_subnet.sellix-eb-public-subnet[*].id,
+    "private" : aws_subnet.sellix-eb-private-subnet[*].id
   }
 }
 
 output "rts" {
-  value = aws_route_table.sellix-eb-private-route-table[*]
+  value = {
+    "public" : aws_route_table.sellix-eb-public-route-table[*].id,
+    "private" : aws_route_table.sellix-eb-private-route-table[*].id
+  }
 }

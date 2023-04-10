@@ -5,7 +5,7 @@ locals {
 
 resource "aws_globalaccelerator_accelerator" "production-ga" {
   provider        = aws.eu-west-1
-  count           = local.is_production && var.global_accelerator ? length(local.environments) : 0
+  count           = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
   name            = "sellix-${keys(local.environments)[count.index]}-ga"
   ip_address_type = "IPV4"
   enabled         = true
@@ -31,7 +31,7 @@ resource "aws_globalaccelerator_listener" "production-ga-listener" {
 
 resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
   provider     = aws.eu-west-1
-  count        = (local.is_production && var.global_accelerator) ? length(local.environments) : 0
+  count        = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
   listener_arn = aws_globalaccelerator_listener.production-ga-listener[count.index].id
   endpoint_configuration {
     client_ip_preservation_enabled = true
@@ -42,7 +42,7 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
 
 resource "aws_globalaccelerator_endpoint_group" "production-ga-us-eg" {
   provider     = aws.eu-west-1
-  count        = (local.is_production && var.global_accelerator) ? length(local.environments) : 0
+  count        = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
   listener_arn = aws_globalaccelerator_listener.production-ga-listener[count.index].id
   endpoint_configuration {
     client_ip_preservation_enabled = true
