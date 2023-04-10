@@ -6,17 +6,17 @@ resource "aws_key_pair" "sellix-eb-keypair" {
   }
 }
 
+variable "main_cidr_block" {
+  type    = string
+  default = ""
+}
+
 variable "vpc_id" {
   type    = string
   default = ""
 }
 
 variable "vpc_subnets" {
-  type    = map(any)
-  default = {}
-}
-
-variable "sgr" {
   type    = map(any)
   default = {}
 }

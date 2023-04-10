@@ -61,8 +61,10 @@ module "vpc-eu-west-1" {
   providers = {
     aws = aws.eu-west-1
   }
+  azs                   = ["eu-west-1b", "eu-west-1c"]
   tags                  = local.tags
-  legacy-vpc_cidr-block = var.legacy-vpc_cidr-block
+  legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
+  legacy-vpc-sg         = var.legacy-vpc-sg
   main_cidr_block       = local.eu_main_cidr
   is_production         = local.is_production
   vpc_peerings          = var.vpc_peerings
@@ -74,8 +76,10 @@ module "vpc-us-east-1" {
   providers = {
     aws = aws.eu-west-1
   }
+  azs                   = ["us-east-1b", "us-east-1c"]
   tags                  = local.tags
-  legacy-vpc_cidr-block = var.legacy-vpc_cidr-block
+  legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
+  legacy-vpc-sg         = var.legacy-vpc-sg
   main_cidr_block       = local.us_main_cidr
   is_production         = local.is_production
   vpc_peerings          = var.vpc_peerings
@@ -87,11 +91,11 @@ module "eb-eu-west-1" {
     aws = aws.eu-west-1
   }
   tags                    = local.tags
+  main_cidr_block         = local.eu_main_cidr
   vpc_id                  = module.vpc-eu-west-1.vpc_id
   vpc_subnets             = module.vpc-eu-west-1.subnets
-  sgr                     = module.vpc-eu-west-1.sgr
-  redis_endpoint          = local.is_redis && (length(var.redis-writer) > 0) ? var.redis-writer : null
-  redis_read_endpoint     = local.is_redis && (length(var.redis-readers["eu-west-1"]) > 0) ? var.redis-readers["eu-west-1"] : null
+  redis_endpoint          = local.is_redis ? module.redis-eu-west-1.writer : null
+  redis_read_endpoint     = local.is_redis ? module.redis-eu-west-1.reader : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -103,6 +107,7 @@ module "eb-eu-west-1" {
   is_production           = local.is_production
 }
 
+// redis
 module "eu-us-cross-region-vpc-peering" {
   count  = local.is_production ? 1 : 0
   source = "./peering"
@@ -110,16 +115,15 @@ module "eu-us-cross-region-vpc-peering" {
     aws.first  = aws.eu-west-1
     aws.second = aws.us-east-1
   }
+
   tags     = local.tags
-  rts_1    = module.vpc-eu-west-1.rts
+  rts_1    = module.vpc-eu-west-1.rts["private"]
   vpc_id_1 = module.vpc-eu-west-1.vpc_id
   cidr_1   = local.eu_main_cidr
-  sgr_id_1 = module.vpc-eu-west-1.sgr["eb"]
 
-  rts_2    = module.vpc-us-east-1[count.index].rts
+  rts_2    = module.vpc-us-east-1[count.index].rts["private"]
   vpc_id_2 = module.vpc-us-east-1[count.index].vpc_id
   cidr_2   = local.us_main_cidr
-  sgr_id_2 = module.vpc-us-east-1[count.index].sgr["eb"]
 }
 
 module "eb-us-east-1" {
@@ -128,12 +132,12 @@ module "eb-us-east-1" {
   providers = {
     aws = aws.us-east-1
   }
+  main_cidr_block         = local.us_main_cidr
   vpc_id                  = module.vpc-us-east-1[count.index].vpc_id
   vpc_subnets             = module.vpc-us-east-1[count.index].subnets
-  sgr                     = module.vpc-us-east-1[count.index].sgr
   tags                    = local.tags
-  redis_endpoint          = local.is_redis && (length(var.redis-writer) > 0) ? var.redis-writer : null
-  redis_read_endpoint     = local.is_redis && (length(var.redis-readers["us-east-1"]) > 0) ? var.redis-readers["us-east-1"] : null
+  redis_endpoint          = local.is_redis ? module.redis-eu-west-1.writer : null
+  redis_read_endpoint     = local.is_redis ? module.redis-us-east-1.reader : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
