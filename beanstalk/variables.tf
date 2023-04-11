@@ -91,3 +91,9 @@ variable "is_production" {
   description = "Environment Boolean"
   default     = true
 }
+
+variable "ssl_listener" {
+  type        = bool
+  description = "Application Listens SSL"
+  default     = true
+}

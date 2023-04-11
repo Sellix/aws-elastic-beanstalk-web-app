@@ -85,3 +85,9 @@ variable "redis_transit_encryption_enabled" {
   description = "Redis transit encryption"
   default     = true
 }
+
+variable "ssl_listener" {
+  type        = bool
+  description = "Application Listens SSL"
+  default     = true
+}

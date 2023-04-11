@@ -14,9 +14,12 @@ locals {
     REDIS_URL              = "redis://${var.redis_endpoint}:6379"
     REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
   } }
-  is_ssl = tostring(length(lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")) > 0)
-  eb_processes = tostring(local.is_ssl) ? {
-    "https" : { "valid" : tostring(local.is_ssl), "protocol" : "https", "port" : "443" }
+
+  ssl_arn = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")
+  is_ssl  = length(local.ssl_arn) > 0
+
+  eb_processes = var.ssl_listener ? {
+    "https" : { "valid" : tostring(var.ssl_listener), "protocol" : "https", "port" : "443" }
   } : { "default" : { "valid" : "true", "protocol" : "http", "port" : "80" } }
 
 
@@ -218,12 +221,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "ListenerEnabled"
-      value     = local.is_ssl
-    },
-    {
-      namespace = "aws:elbv2:listener:443"
-      name      = "DefaultProcess"
-      value     = "https"
+      value     = tostring(local.is_ssl)
     },
     {
       namespace = "aws:elbv2:listener:443"
@@ -233,7 +231,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "false")
+      value     = local.is_ssl ? local.ssl_arn : tobool(false)
     },
     {
       namespace = "aws:elbv2:loadbalancer"

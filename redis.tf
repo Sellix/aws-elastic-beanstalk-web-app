@@ -1,5 +1,5 @@
 resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
-  count = local.is_redis ? 1 : 0
+  count       = local.is_redis ? 1 : 0
   provider    = aws.eu-west-1
   name        = "Redis eu-west-1 Security Group"
   description = "Redis Traffic SG"
@@ -53,7 +53,7 @@ resource "aws_security_group" "sellix-redis-us-east-1-sg" {
 }
 
 module "redis-eu-west-1" {
-  count = local.is_redis ? 1 : 0
+  count  = local.is_redis ? 1 : 0
   source = "./redis-regions"
   providers = {
     aws = aws.eu-west-1

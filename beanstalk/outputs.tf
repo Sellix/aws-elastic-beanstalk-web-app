@@ -7,7 +7,7 @@ output "eb_cname" {
 
 output "eb_load_balancers" {
   value = {
-    for _, j in local.envs_map :
-    j => aws_elastic_beanstalk_environment.sellix-eb-environment[_].load_balancers
+    for _, env_name in local.envs_map :
+    env_name => aws_elastic_beanstalk_environment.sellix-eb-environment[_].load_balancers
   }
 }

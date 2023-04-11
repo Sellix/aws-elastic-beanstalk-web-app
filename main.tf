@@ -5,10 +5,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.0"
     }
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 3.0"
-    }
   }
   backend "s3" {
     profile        = "sellix-terraform"
@@ -94,8 +90,8 @@ module "eb-eu-west-1" {
   main_cidr_block         = local.eu_main_cidr
   vpc_id                  = module.vpc-eu-west-1.vpc_id
   vpc_subnets             = module.vpc-eu-west-1.subnets
-  redis_endpoint          = local.is_redis ? module.redis-eu-west-1.writer : null
-  redis_read_endpoint     = local.is_redis ? module.redis-eu-west-1.reader : null
+  redis_endpoint          = local.is_redis ? join(",", module.redis-eu-west-1[*].writer) : null
+  redis_read_endpoint     = local.is_redis ? join(",", module.redis-eu-west-1[*].reader) : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -105,6 +101,7 @@ module "eb-eu-west-1" {
   codestar_connection_arn = var.codestar_connection_arn
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
+  ssl_listener            = var.ssl_listener
 }
 
 // redis
@@ -136,8 +133,8 @@ module "eb-us-east-1" {
   vpc_id                  = module.vpc-us-east-1[count.index].vpc_id
   vpc_subnets             = module.vpc-us-east-1[count.index].subnets
   tags                    = local.tags
-  redis_endpoint          = local.is_redis ? module.redis-eu-west-1.writer : null
-  redis_read_endpoint     = local.is_redis ? module.redis-us-east-1.reader : null
+  redis_endpoint          = local.is_redis ? module.redis-eu-west-1[count.index].writer : null
+  redis_read_endpoint     = local.is_redis ? module.redis-us-east-1[count.index].reader : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -147,6 +144,7 @@ module "eb-us-east-1" {
   codestar_connection_arn = var.codestar_connection_arn
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
+  ssl_listener            = var.ssl_listener
 }
 
 output "eu-west-1_eb-cname" {
