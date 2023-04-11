@@ -5,8 +5,8 @@ locals {
 
 resource "aws_globalaccelerator_accelerator" "production-ga" {
   provider        = aws.eu-west-1
-  count           = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
-  name            = "sellix-${keys(local.environments)[count.index]}-ga"
+  for_each        = (local.is_production && var.is_global_accelerator) ? local.environments : {}
+  name            = "sellix-${each.key}-ga"
   ip_address_type = "IPV4"
   enabled         = true
   tags            = local.tags
@@ -31,22 +31,30 @@ resource "aws_globalaccelerator_listener" "production-ga-listener" {
 
 resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
   provider     = aws.eu-west-1
-  count        = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
-  listener_arn = aws_globalaccelerator_listener.production-ga-listener[count.index].id
-  endpoint_configuration {
-    client_ip_preservation_enabled = true
-    endpoint_id                    = flatten(local.elbs[0])[keys(local.environments)[count.index]][0]
-    weight                         = 100 / local.elbs_length
+  for_each     = (local.is_production && var.is_global_accelerator) ? local.environments : {}
+  listener_arn = join(",", aws_globalaccelerator_listener.production-ga-listener[*].id)
+  dynamic "endpoint_configuration" {
+    for_each = flatten(local.elbs[0])[each.key]
+
+    content {
+      weight                         = 100 / local.elbs_length
+      client_ip_preservation_enabled = true
+      endpoint_id                    = endpoint_configuration.id
+    }
   }
 }
 
 resource "aws_globalaccelerator_endpoint_group" "production-ga-us-eg" {
   provider     = aws.eu-west-1
-  count        = (local.is_production && var.is_global_accelerator) ? length(local.environments) : 0
-  listener_arn = aws_globalaccelerator_listener.production-ga-listener[count.index].id
-  endpoint_configuration {
-    client_ip_preservation_enabled = true
-    endpoint_id                    = flatten(local.elbs[1])[keys(local.environments)[count.index]][0]
-    weight                         = 100 / local.elbs_length
+  for_each     = (local.is_production && var.is_global_accelerator) ? local.environments : {}
+  listener_arn = join(",", aws_globalaccelerator_listener.production-ga-listener[*].id)
+  dynamic "endpoint_configuration" {
+    for_each = flatten(local.elbs[1])[each.key]
+
+    content {
+      weight                         = 100 / local.elbs_length
+      client_ip_preservation_enabled = true
+      endpoint_id                    = endpoint_configuration.id
+    }
   }
 }
