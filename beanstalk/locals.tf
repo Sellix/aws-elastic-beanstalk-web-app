@@ -1,9 +1,11 @@
 data "aws_region" "current" {}
 
 locals {
-  aws_region     = data.aws_region.current.name
-  codebuild_envs = distinct([for k in keys(var.environments) : var.environments[k]["versions"]["codebuild"]])
-  envs_map       = { for i, env in keys(var.environments) : tonumber(i) => env }
+  aws_region = data.aws_region.current.name
+
+  codebuild_envs = distinct([for v in values(var.environments) : v["versions"]["codebuild"]])
+
+  envs_map = { for i, env in keys(var.environments) : tonumber(i) => env }
   env = { for _, env_name in local.envs_map : env_name => {
     ELASTIC_BEANSTALK_PORT = 8080
     DOMAIN                 = "${var.environments[env_name]["domain"]}.${var.is_production ? "io" : "gg"}"
@@ -13,7 +15,8 @@ locals {
     REDIS_PORT             = 6379
     REDIS_URL              = "redis://${var.redis_endpoint}:6379"
     REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
-  } }
+    }
+  }
 
   ssl_arn = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")
   is_ssl  = length(local.ssl_arn) > 0

@@ -39,7 +39,9 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = length(local.codebuild_envs) > 1 ? aws_codebuild_project.sellix-eb[each.key].name : aws_codebuild_project.sellix-eb[0].name
+        ProjectName = (length(local.codebuild_envs) > 1 ?
+          aws_codebuild_project.sellix-eb[each.key].name :
+        aws_codebuild_project.sellix-eb[0].name)
       }
     }
   }

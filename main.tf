@@ -36,8 +36,8 @@ locals {
   is_production = length(regexall("production", terraform.workspace)) > 0
   environments  = { for k, v in var.environments : k => v if tobool(v.enabled) }
   is_redis      = length({ for k, v in local.environments : k => v if tobool(v.redis) }) > 0
-  eu_main_cidr  = cidrsubnet(var.main_cidr_block, 8, (local.is_production ? 0 : 2) + length(terraform.workspace))
-  us_main_cidr  = cidrsubnet(var.main_cidr_block, 8, 1)
+  eu_main_cidr  = cidrsubnet(var.main_cidr_block, 8, ((local.is_production ? 0 : 2) + length(terraform.workspace)) % 256)
+  us_main_cidr  = cidrsubnet(var.main_cidr_block, 8, (1 + length(terraform.workspace)) % 256)
   tags = {
     "Project"     = "sellix-eb-${terraform.workspace}"
     "Environment" = terraform.workspace
@@ -57,7 +57,7 @@ module "vpc-eu-west-1" {
   providers = {
     aws = aws.eu-west-1
   }
-  azs                   = ["eu-west-1b", "eu-west-1c"]
+  azs                   = var.preferred_azs
   tags                  = local.tags
   legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
   legacy-vpc-sg         = var.legacy-vpc-sg
@@ -72,7 +72,7 @@ module "vpc-us-east-1" {
   providers = {
     aws = aws.eu-west-1
   }
-  azs                   = ["us-east-1b", "us-east-1c"]
+  azs                   = var.preferred_azs
   tags                  = local.tags
   legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
   legacy-vpc-sg         = var.legacy-vpc-sg
@@ -90,8 +90,8 @@ module "eb-eu-west-1" {
   main_cidr_block         = local.eu_main_cidr
   vpc_id                  = module.vpc-eu-west-1.vpc_id
   vpc_subnets             = module.vpc-eu-west-1.subnets
-  redis_endpoint          = local.is_redis ? join(",", module.redis-eu-west-1[*].writer) : null
-  redis_read_endpoint     = local.is_redis ? join(",", module.redis-eu-west-1[*].reader) : null
+  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : null
+  redis_read_endpoint     = local.is_redis ? one(module.redis-eu-west-1).reader : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -106,7 +106,7 @@ module "eb-eu-west-1" {
 
 // redis
 module "eu-us-cross-region-vpc-peering" {
-  count  = local.is_production ? 1 : 0
+  count  = (local.is_production && local.is_redis) ? 1 : 0
   source = "./peering"
   providers = {
     aws.first  = aws.eu-west-1
@@ -118,8 +118,8 @@ module "eu-us-cross-region-vpc-peering" {
   vpc_id_1 = module.vpc-eu-west-1.vpc_id
   cidr_1   = local.eu_main_cidr
 
-  rts_2    = module.vpc-us-east-1[count.index].rts["private"]
-  vpc_id_2 = module.vpc-us-east-1[count.index].vpc_id
+  rts_2    = one(module.vpc-us-east-1).rts["private"]
+  vpc_id_2 = one(module.vpc-us-east-1).vpc_id
   cidr_2   = local.us_main_cidr
 }
 
@@ -130,11 +130,11 @@ module "eb-us-east-1" {
     aws = aws.us-east-1
   }
   main_cidr_block         = local.us_main_cidr
-  vpc_id                  = module.vpc-us-east-1[count.index].vpc_id
-  vpc_subnets             = module.vpc-us-east-1[count.index].subnets
+  vpc_id                  = one(module.vpc-us-east-1).vpc_id
+  vpc_subnets             = one(module.vpc-us-east-1).subnets
   tags                    = local.tags
-  redis_endpoint          = local.is_redis ? module.redis-eu-west-1[count.index].writer : null
-  redis_read_endpoint     = local.is_redis ? module.redis-us-east-1[count.index].reader : null
+  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : null
+  redis_read_endpoint     = local.is_redis ? one(module.redis-us-east-1).reader : null
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -148,9 +148,9 @@ module "eb-us-east-1" {
 }
 
 output "eu-west-1_eb-cname" {
-  value = module.eb-eu-west-1[*].eb_cname
+  value = module.eb-eu-west-1.eb_cname
 }
 
 output "us-east-1_eb-cname" {
-  value = module.eb-us-east-1[*].eb_cname
+  value = one(module.eb-us-east-1).eb_cname
 }

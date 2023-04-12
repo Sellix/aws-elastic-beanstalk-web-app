@@ -30,7 +30,7 @@ resource "aws_security_group" "sellix-redis-us-east-1-sg" {
   provider    = aws.us-east-1
   name        = "Redis us-east-1 Security Group"
   description = "Redis Traffic SG"
-  vpc_id      = module.vpc-us-east-1[count.index].vpc_id
+  vpc_id      = one(module.vpc-us-east-1).vpc_id
   ingress {
     description = "Allow Redis Connections"
     from_port   = var.redis_port
@@ -61,7 +61,7 @@ module "redis-eu-west-1" {
   is_primary                 = true
   is_production              = local.is_production
   tags                       = local.tags
-  sgr_id                     = aws_security_group.sellix-redis-eu-west-1-sg[count.index].id
+  sgr_id                     = one(aws_security_group.sellix-redis-eu-west-1-sg).id
   node_type                  = local.is_production ? "cache.t3.medium" : "cache.t4g.small"
   subnet_ids                 = local.is_production ? module.vpc-eu-west-1.subnets["private"][*] : module.vpc-eu-west-1.subnets["public"][*]
   port                       = var.redis_port
@@ -74,7 +74,7 @@ resource "aws_elasticache_global_replication_group" "sellix-eb-global-datastore"
   count                              = (local.is_production && local.is_redis) ? 1 : 0
   provider                           = aws.eu-west-1
   global_replication_group_id_suffix = "sellix-eb-global-datastore"
-  primary_replication_group_id       = module.redis-eu-west-1[count.index].id
+  primary_replication_group_id       = one(module.redis-eu-west-1).id
 }
 
 module "redis-us-east-1" {
@@ -86,10 +86,10 @@ module "redis-us-east-1" {
   is_primary                  = false
   is_production               = local.is_production
   tags                        = local.tags
-  sgr_id                      = aws_security_group.sellix-redis-us-east-1-sg[count.index].id
+  sgr_id                      = one(aws_security_group.sellix-redis-us-east-1-sg).id
   node_type                   = "cache.t3.medium"
-  subnet_ids                  = module.vpc-us-east-1[count.index].subnets["private"][*]
-  global_replication_group_id = aws_elasticache_global_replication_group.sellix-eb-global-datastore[count.index].id
+  subnet_ids                  = one(module.vpc-us-east-1).subnets["private"][*]
+  global_replication_group_id = one(aws_elasticache_global_replication_group.sellix-eb-global-datastore).id
   port                        = var.redis_port
 }
 
