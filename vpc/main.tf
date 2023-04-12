@@ -19,7 +19,9 @@ data "aws_region" "current" {}
 
 locals {
   aws_region = data.aws_region.current.name
-  is_peering = length(lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")) > 0
+
+  legacy-peering-conn-id = lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")
+  is_peering             = length(local.legacy-peering-conn-id) > 0
 
   availability_zones = [
     for az in var.azs : format("%s%s", local.aws_region, az)

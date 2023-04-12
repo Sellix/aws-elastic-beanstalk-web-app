@@ -11,10 +11,10 @@ data "terraform_remote_state" "sellix-eb-chatbot-terraform-state" {
 }
 
 resource "aws_codestarnotifications_notification_rule" "sellix-eb-codestarnotifications" {
-  count       = length(var.environments)
-  name        = "${var.tags["Project"]}-${local.aws_region}-${keys(var.environments)[count.index]}-chatbot"
+  for_each    = var.environments
+  name        = "${var.tags["Project"]}-${local.aws_region}-${each.key}-chatbot"
   detail_type = "BASIC"
-  resource    = aws_codepipeline.sellix-eb-codepipeline[count.index].arn
+  resource    = aws_codepipeline.sellix-eb-codepipeline[each.key].arn
   status      = "ENABLED"
   event_type_ids = [
     "codepipeline-pipeline-pipeline-execution-started",

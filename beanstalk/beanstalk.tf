@@ -1,17 +1,17 @@
 data "aws_elastic_beanstalk_solution_stack" "nodejs" {
-  for_each    = toset(keys(var.environments))
+  for_each    = var.environments
   most_recent = true
 
-  name_regex = "^64bit Amazon Linux (.*) running Node.js ${var.environments[each.value]["versions"]["nodejs"]}$"
+  name_regex = "^64bit Amazon Linux (.*) running Node.js ${each.value["versions"]["nodejs"]}$"
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
-  for_each               = local.envs_map
-  name                   = "${var.tags["Project"]}-${each.value}"
+  for_each               = var.environments
+  name                   = "${var.tags["Project"]}-${each.key}"
   application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[each.value].name
+  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[each.key].name
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"
@@ -75,7 +75,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
-    value     = each.value == "shop-app" ? "/.well-known/health" : "/"
+    value     = each.key == "shop-app" ? "/.well-known/health" : "/"
     resource  = ""
   }
   setting {
@@ -86,7 +86,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
   # environment
   dynamic "setting" {
-    for_each = merge(local.env[each.value], var.environments[each.value]["vars"])
+    for_each = merge(local.env[each.key], each.value["vars"])
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key

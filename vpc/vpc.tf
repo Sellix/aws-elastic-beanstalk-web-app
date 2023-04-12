@@ -26,7 +26,7 @@ resource "aws_eip" "sellix-eb-eip" {
 */
 
 resource "aws_subnet" "sellix-eb-public-subnet" {
-  count             = var.is_production ? length(local.availability_zones) : 1 // test
+  count             = var.is_production ? length(local.availability_zones) : 1
   vpc_id            = aws_vpc.sellix-eb-vpc.id
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
@@ -34,7 +34,7 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
     8,
     count.index
   )
-  map_public_ip_on_launch = "true"
+  map_public_ip_on_launch = true
   tags = merge({
     "Name" = "${var.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
     },
@@ -43,7 +43,7 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
 }
 
 resource "aws_subnet" "sellix-eb-private-subnet" {
-  count             = var.is_production ? length(local.availability_zones) : 0 // test
+  count             = var.is_production ? length(local.availability_zones) : 0
   vpc_id            = aws_vpc.sellix-eb-vpc.id
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
@@ -51,7 +51,7 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
     8,
     length(local.availability_zones) + count.index
   )
-  map_public_ip_on_launch = "false"
+  map_public_ip_on_launch = false
   tags = merge({
     "Name" = "${var.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
     },
@@ -74,6 +74,7 @@ resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
   }
 }
 */
+
 resource "aws_network_interface" "fuck-nat-if" {
   count             = var.is_production ? length(local.availability_zones) : 0
   subnet_id         = aws_subnet.sellix-eb-public-subnet[count.index].id
@@ -83,9 +84,11 @@ resource "aws_network_interface" "fuck-nat-if" {
 
 
 resource "aws_instance" "fuck-nat" {
-  count         = length(aws_network_interface.fuck-nat-if)
-  ami           = "ami-044fc100ae64a0544"
-  instance_type = "t4g.nano"
+  count             = length(aws_network_interface.fuck-nat-if)
+  availability_zone = element(local.availability_zones, count.index)
+  ami               = "ami-044fc100ae64a0544"
+  instance_type     = "t4g.nano"
+
   metadata_options {
     http_endpoint = "disabled" // not needed
     http_tokens   = "required"
@@ -147,7 +150,7 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     for_each = (var.is_production && local.is_peering) ? [1] : []
     content {
       cidr_block                = var.legacy-vpc-cidr-block
-      vpc_peering_connection_id = var.vpc_peerings[local.aws_region][terraform.workspace]
+      vpc_peering_connection_id = local.legacy-peering-conn-id
     }
   }
   lifecycle {
@@ -173,7 +176,7 @@ resource "aws_route_table_association" "sellix-eb-public-route-table-association
 }
 
 resource "aws_route_table_association" "sellix-eb-private-route-table-association" {
-  count          = var.is_production ? length(local.availability_zones) : 0 // test
+  count          = var.is_production ? length(local.availability_zones) : 0
   subnet_id      = element(aws_subnet.sellix-eb-private-subnet[*].id, count.index)
   route_table_id = var.is_production ? element(aws_route_table.sellix-eb-private-route-table[*].id, count.index) : aws_route_table.sellix-eb-private-route-table[0].id
 }

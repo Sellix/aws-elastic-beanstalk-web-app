@@ -50,18 +50,6 @@ variable "public_key_path" {
   default     = "~/.ssh/id_rsa.pub"
 }
 
-variable "github_org" {
-  type        = string
-  description = "GitHub Organization Name"
-  default     = null
-}
-
-variable "github_repos" {
-  type        = map(any)
-  description = "GitHub Repo Name"
-  default     = {}
-}
-
 variable "ssl_arn" {
   type        = map(any)
   description = "SSL Certificate ARN"

@@ -95,8 +95,6 @@ module "eb-eu-west-1" {
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
-  github_org              = var.github_org
-  github_repos            = var.github_repos
   ssl_arn                 = var.ssl_arn
   codestar_connection_arn = var.codestar_connection_arn
   canary_deployments      = var.canary_deployments
@@ -138,8 +136,6 @@ module "eb-us-east-1" {
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
-  github_org              = var.github_org
-  github_repos            = var.github_repos
   ssl_arn                 = var.ssl_arn
   codestar_connection_arn = var.codestar_connection_arn
   canary_deployments      = var.canary_deployments
@@ -152,5 +148,5 @@ output "eu-west-1_eb-cname" {
 }
 
 output "us-east-1_eb-cname" {
-  value = one(module.eb-us-east-1).eb_cname
+  value = module.eb-us-east-1[*].eb_cname
 }

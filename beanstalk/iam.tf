@@ -125,7 +125,7 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     ]
     effect = "Allow"
     resources = [
-      for _, env_name in values(local.envs_map) :
+      for _, env_name in keys(var.environments) :
       "arn:aws:logs:*:*:log-group:/aws/elasticbeanstalk/${var.tags["Project"]}-${env_name}/var/log/*"
     ]
   }
@@ -165,7 +165,7 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     ]
     effect = "Allow"
     resources = [
-      for _, env_name in values(local.envs_map) :
+      for _, env_name in keys(var.environments) :
       "arn:aws:elasticbeanstalk:${local.aws_region}:*:environment/${var.tags["Project"]}/${var.tags["Project"]}-${env_name}"
     ]
   }
@@ -271,7 +271,7 @@ data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
     resources = [
       data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"],
       join("", [
-        for _, env_name in values(local.envs_map) :
+        for _, env_name in keys(var.environments) :
         "arn:aws:sns:${local.aws_region}:*:ElasticBeanstalkNotifications-Environment-${var.tags["Project"]}-${env_name}*"
       ]),
     ]
@@ -386,7 +386,7 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-permissions-pol
       "codebuild:StartBuild"
     ]
     effect    = "Allow"
-    resources = aws_codebuild_project.sellix-eb[*].arn
+    resources = [for _, v in aws_codebuild_project.sellix-eb : v.arn]
   }
 }
 
