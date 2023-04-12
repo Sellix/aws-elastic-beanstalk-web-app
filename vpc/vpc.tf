@@ -31,7 +31,7 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
     var.main_cidr_block,
-    ceil(log(length(local.availability_zones) * 4, 2)),
+    8,
     count.index
   )
   map_public_ip_on_launch = "true"
@@ -48,7 +48,7 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
   availability_zone = element(local.availability_zones, count.index)
   cidr_block = cidrsubnet(
     var.main_cidr_block,
-    ceil(log(length(local.availability_zones) * 4, 2)),
+    8,
     length(local.availability_zones) + count.index
   )
   map_public_ip_on_launch = "false"
@@ -87,7 +87,7 @@ resource "aws_instance" "fuck-nat" {
   ami           = "ami-044fc100ae64a0544"
   instance_type = "t4g.nano"
   metadata_options {
-    http_endpoint = "disabled" // no needed
+    http_endpoint = "disabled" // not needed
     http_tokens   = "required"
   }
 
@@ -143,7 +143,7 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     // nat_gateway_id = aws_nat_gateway.sellix-eb-nat-gateway[count.index].id
     network_interface_id = aws_instance.fuck-nat[count.index].primary_network_interface_id
   }
-  dynamic "route" {
+  dynamic "route" { // peering with backend
     for_each = (var.is_production && local.is_peering) ? [1] : []
     content {
       cidr_block                = var.legacy-vpc-cidr-block

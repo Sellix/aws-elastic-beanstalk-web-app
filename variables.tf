@@ -91,3 +91,9 @@ variable "ssl_listener" {
   description = "Application Listens SSL"
   default     = true
 }
+
+variable "preferred_azs" {
+  type        = list(string)
+  description = "List of preferred azs"
+  default     = ["b", "c"]
+}

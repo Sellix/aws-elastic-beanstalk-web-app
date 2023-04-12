@@ -18,16 +18,34 @@ data "aws_availability_zones" "available" {
 data "aws_region" "current" {}
 
 locals {
-  filtered_azs = [
-    for az in var.azs : az
-    if contains(data.aws_availability_zones.available.names, az)
-  ]
-  availability_zones = (length(local.filtered_azs) == length(var.azs) ?
-    local.filtered_azs :
-  [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]])
-
   aws_region = data.aws_region.current.name
   is_peering = length(lookup(var.vpc_peerings[local.aws_region], terraform.workspace, "")) > 0
+
+  availability_zones = [
+    for az in var.azs : format("%s%s", local.aws_region, az)
+  ]
+  /*
+  // intersection between user azs and available azs
+  filtered_azs = tolist(setintersection(
+    toset([
+      for az in var.azs : format("%s%s", local.aws_region, az)
+    ]),
+    toset(data.aws_availability_zones.available.names))
+  )
+  remaining_azs = tolist(setsubtract(
+    toset(data.aws_availability_zones.available.names),
+    toset(local.filtered_azs)
+  ))
+  // see if user azs are available else add random azs
+  availability_zones = (length(local.filtered_azs) == length(var.azs) ?
+    local.filtered_azs :
+    concat([
+      for _, j in range(length(var.azs) - length(local.filtered_azs) % length(local.remaining_azs)) :
+      local.remaining_azs[j]
+      ],
+    local.filtered_azs)
+  )
+  */
 }
 
 variable "tags" {
@@ -87,4 +105,8 @@ output "rts" {
     "public" : aws_route_table.sellix-eb-public-route-table[*].id,
     "private" : aws_route_table.sellix-eb-private-route-table[*].id
   }
+}
+
+output "azs" {
+  value = local.availability_zones
 }
