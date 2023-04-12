@@ -5,10 +5,9 @@ locals {
 
   codebuild_envs = distinct([for v in values(var.environments) : v["versions"]["codebuild"]])
 
-  envs_map = { for i, env in keys(var.environments) : tonumber(i) => env }
-  env = { for _, env_name in local.envs_map : env_name => {
+  env = { for env_name, vals in var.environments : env_name => {
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = "${var.environments[env_name]["domain"]}.${var.is_production ? "io" : "gg"}"
+    DOMAIN                 = "${vals["domain"]}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
     REDIS_HOST             = var.redis_endpoint

@@ -1,24 +1,25 @@
 {
     "aws_access_key": "",
     "aws_secret_key": "",
-    "nodejs_version": "",
     "main_cidr_block": "",
     "codestar_connection_arn": "",
     "canary_deployments": false,
     "domains": [],
     "environments": {
         "name": {
+            "github": {
+                "repo": "OrgName/RepoName",
+                "branch": "branchName"
+            },
+            "domain": "sdlName",
             "enabled": "true",
+            "redis": "false",
             "versions": {
                 "codebuild": "6",
                 "nodejs": "16"
             },
             "vars": {}
         }
-    },
-    "github_org": "repo-org",
-    "github_repos": {
-            "repo-name": "repo-branch"
     },
     "ssl_arn": {
         "eu-west-1": {

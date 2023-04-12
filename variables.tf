@@ -26,18 +26,6 @@ variable "legacy-vpc-sg" {
   default     = "sg-0e0341d00f96b7cc0"
 }
 
-variable "github_org" {
-  type        = string
-  description = "GitHub Organization Name"
-  default     = null
-}
-
-variable "github_repos" {
-  type        = map(any)
-  description = "GitHub Repo Name"
-  default     = null
-}
-
 variable "ssl_arn" {
   type        = map(any)
   description = "SSL Certificate ARN"

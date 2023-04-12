@@ -1,6 +1,6 @@
 resource "aws_codepipeline" "sellix-eb-codepipeline" {
-  for_each = local.envs_map
-  name     = "${var.tags["Project"]}-${each.value}-codepipeline"
+  for_each = var.environments
+  name     = "${var.tags["Project"]}-${each.key}-codepipeline"
   role_arn = aws_iam_role.sellix-eb-codepipeline-role.arn
   artifact_store {
     location = aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.bucket
@@ -21,8 +21,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       output_artifacts = ["sellix-eb-artifacts"]
       configuration = {
         ConnectionArn        = var.codestar_connection_arn
-        FullRepositoryId     = "${var.github_org}/${keys(var.github_repos)[each.key]}"
-        BranchName           = var.github_repos[each.value]
+        FullRepositoryId     = each.value["github"]["repo"]
+        BranchName           = each.value["github"]["branch"]
         DetectChanges        = !var.is_production
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
@@ -39,9 +39,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = (length(local.codebuild_envs) > 1 ?
-          aws_codebuild_project.sellix-eb[each.key].name :
-        aws_codebuild_project.sellix-eb[0].name)
+        ProjectName = aws_codebuild_project.sellix-eb[each.value["versions"]["codebuild"]].name
       }
     }
   }
@@ -68,8 +66,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
 }
 
 resource "aws_codebuild_project" "sellix-eb" {
-  count          = length(local.codebuild_envs)
-  name           = "${var.tags["Project"]}-codebuild-${count.index}"
+  for_each       = toset(local.codebuild_envs)
+  name           = "${var.tags["Project"]}-codebuild-${each.key}"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
   encryption_key = aws_kms_key.sellix-eb-kms-key.arn
@@ -83,7 +81,7 @@ resource "aws_codebuild_project" "sellix-eb" {
   environment {
     type                        = "LINUX_CONTAINER"
     compute_type                = "BUILD_GENERAL1_LARGE"
-    image                       = "aws/codebuild/standard:${var.environments[keys(var.environments)[count.index]]["versions"]["codebuild"]}.0"
+    image                       = "aws/codebuild/standard:${each.key}.0"
     image_pull_credentials_type = "CODEBUILD"
     privileged_mode             = false
   }

@@ -92,4 +92,3 @@ module "redis-us-east-1" {
   global_replication_group_id = one(aws_elasticache_global_replication_group.sellix-eb-global-datastore).id
   port                        = var.redis_port
 }
-
