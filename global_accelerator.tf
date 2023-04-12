@@ -29,7 +29,7 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
   for_each                = aws_globalaccelerator_accelerator.production-ga
   listener_arn            = aws_globalaccelerator_listener.production-ga-listener[each.key].id
   traffic_dial_percentage = 50
-  health_check_path       = each.key == "shop-app" ? "/.well-known/health" : "/"
+  health_check_path       = local.environments[each.key]["healthcheck"]
   health_check_port       = 80
 
   dynamic "endpoint_configuration" {
@@ -47,7 +47,7 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-us-eg" {
   for_each                = aws_globalaccelerator_accelerator.production-ga
   listener_arn            = aws_globalaccelerator_listener.production-ga-listener[each.key].id
   traffic_dial_percentage = 50
-  health_check_path       = each.key == "shop-app" ? "/.well-known/health" : "/"
+  health_check_path       = local.environments[each.key]["healthcheck"]
   health_check_port       = 80
 
   dynamic "endpoint_configuration" {

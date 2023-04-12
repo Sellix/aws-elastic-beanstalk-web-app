@@ -75,7 +75,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
-    value     = each.key == "shop-app" ? "/.well-known/health" : "/"
+    value     = each.value["healthcheck"]
     resource  = ""
   }
   setting {
