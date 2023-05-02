@@ -57,13 +57,13 @@ module "vpc-eu-west-1" {
   providers = {
     aws = aws.eu-west-1
   }
-  azs                   = var.preferred_azs
-  tags                  = local.tags
-  legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
-  legacy-vpc-sg         = var.legacy-vpc-sg
-  main_cidr_block       = local.eu_main_cidr
-  is_production         = local.is_production
-  vpc_peerings          = var.vpc_peerings
+  azs                    = var.preferred_azs
+  tags                   = local.tags
+  legacy-vpc-cidr-block  = var.legacy-vpc-cidr-block
+  legacy-vpc-sg          = var.legacy-vpc-sg
+  main_cidr_block        = local.eu_main_cidr
+  is_production          = local.is_production
+  legacy-peering-conn-id = lookup(var.vpc_peerings["eu-west-1"], terraform.workspace, "")
 }
 
 module "vpc-us-east-1" {
@@ -72,13 +72,13 @@ module "vpc-us-east-1" {
   providers = {
     aws = aws.eu-west-1
   }
-  azs                   = var.preferred_azs
-  tags                  = local.tags
-  legacy-vpc-cidr-block = var.legacy-vpc-cidr-block
-  legacy-vpc-sg         = var.legacy-vpc-sg
-  main_cidr_block       = local.us_main_cidr
-  is_production         = local.is_production
-  vpc_peerings          = var.vpc_peerings
+  azs                    = var.preferred_azs
+  tags                   = local.tags
+  legacy-vpc-cidr-block  = var.legacy-vpc-cidr-block
+  legacy-vpc-sg          = var.legacy-vpc-sg
+  main_cidr_block        = local.us_main_cidr
+  is_production          = local.is_production
+  legacy-peering-conn-id = lookup(var.vpc_peerings["us-east-1"], terraform.workspace, "")
 }
 
 module "eb-eu-west-1" {

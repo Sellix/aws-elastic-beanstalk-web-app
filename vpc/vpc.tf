@@ -146,7 +146,7 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     for_each = (var.is_production && local.is_peering) ? [1] : []
     content {
       cidr_block                = var.legacy-vpc-cidr-block
-      vpc_peering_connection_id = local.legacy-peering-conn-id
+      vpc_peering_connection_id = var.legacy-peering-conn-id
     }
   }
   lifecycle {
