@@ -10,7 +10,6 @@ resource "aws_vpc" "sellix-eb-vpc" {
   )
 }
 
-/*
 resource "aws_eip" "sellix-eb-eip" {
   count = var.is_production ? length(local.availability_zones) : 0
   vpc   = "true"
@@ -23,7 +22,6 @@ resource "aws_eip" "sellix-eb-eip" {
     create_before_destroy = "true"
   }
 }
-*/
 
 resource "aws_subnet" "sellix-eb-public-subnet" {
   count             = var.is_production ? length(local.availability_zones) : 1
@@ -59,9 +57,8 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
   )
 }
 
-/*
 resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
-  count         = var.is_production ? length(local.availability_zones) : 1
+  count         = (var.is_production && !var.is_nat_instance) ? length(local.availability_zones) : 0
   allocation_id = element(aws_eip.sellix-eb-eip[*].id, count.index)
   subnet_id     = element(aws_subnet.sellix-eb-public-subnet[*].id, count.index)
   tags = merge({
@@ -73,12 +70,11 @@ resource "aws_nat_gateway" "sellix-eb-nat-gateway" {
     create_before_destroy = "true"
   }
 }
-*/
 
 resource "aws_network_interface" "fuck-nat-if" {
-  count             = var.is_production ? length(local.availability_zones) : 0
+  count             = (var.is_production && var.is_nat_instance) ? length(local.availability_zones) : 0
   subnet_id         = aws_subnet.sellix-eb-public-subnet[count.index].id
-  security_groups   = [aws_security_group.sellix-eb-fuck-nat-security-group.id]
+  security_groups   = [one(aws_security_group.sellix-eb-fuck-nat-security-group).id]
   source_dest_check = false
 }
 
@@ -110,10 +106,10 @@ resource "aws_instance" "fuck-nat" {
   }
 }
 
-resource "aws_eip" "fuck-nat-eip" {
-  count    = length(aws_instance.fuck-nat)
-  instance = aws_instance.fuck-nat[count.index].id
-  vpc      = true
+resource "aws_eip_association" "sellix-eb-eip-assoc" {
+  count         = length(aws_instance.fuck-nat)
+  instance_id   = aws_instance.fuck-nat[count.index].id
+  allocation_id = aws_eip.sellix-eb-eip[count.index].id
 }
 
 resource "aws_internet_gateway" "sellix-eb-internet-gateway" {
@@ -142,9 +138,9 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
   count  = var.is_production ? length(local.availability_zones) : 0
   vpc_id = aws_vpc.sellix-eb-vpc.id
   route {
-    cidr_block = "0.0.0.0/0"
-    // nat_gateway_id = aws_nat_gateway.sellix-eb-nat-gateway[count.index].id
-    network_interface_id = aws_instance.fuck-nat[count.index].primary_network_interface_id
+    cidr_block           = "0.0.0.0/0"
+    nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
+    network_interface_id = length(aws_instance.fuck-nat) ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
   }
   dynamic "route" { // peering with backend
     for_each = (var.is_production && local.is_peering) ? [1] : []

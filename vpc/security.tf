@@ -1,4 +1,5 @@
 resource "aws_security_group" "sellix-eb-fuck-nat-security-group" {
+  count =  (var.is_production && var.is_nat_instance) ? 1 : 0
   name        = "${var.tags["Project"]}-fuck-nat-security-group"
   description = "Managed Nat Instance Security Group"
   vpc_id      = aws_vpc.sellix-eb-vpc.id
