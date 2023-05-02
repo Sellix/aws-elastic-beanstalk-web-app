@@ -18,11 +18,6 @@ resource "aws_s3_bucket" "sellix-eb-codepipeline-s3-bucket" {
   )
 }
 
-resource "aws_s3_bucket_acl" "sellix-eb-codepipeline-s3-bucket-acl" {
-  bucket = aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.id
-  acl    = "private"
-}
-
 resource "aws_s3_bucket" "sellix-eb-elb-logs" {
   bucket = "${var.tags["Project"]}-${local.aws_region}-elb-logs"
   tags = merge({
@@ -30,11 +25,6 @@ resource "aws_s3_bucket" "sellix-eb-elb-logs" {
     },
     var.tags
   )
-}
-
-resource "aws_s3_bucket_acl" "sellix-eb-elb-logs-acl" {
-  bucket = aws_s3_bucket.sellix-eb-elb-logs.id
-  acl    = "private"
 }
 
 resource "aws_s3_bucket_policy" "sellix-eb-elb-logs-policy" {

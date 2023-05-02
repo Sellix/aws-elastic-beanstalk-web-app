@@ -90,8 +90,8 @@ module "eb-eu-west-1" {
   main_cidr_block         = local.eu_main_cidr
   vpc_id                  = module.vpc-eu-west-1.vpc_id
   vpc_subnets             = module.vpc-eu-west-1.subnets
-  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : null
-  redis_read_endpoint     = local.is_redis ? one(module.redis-eu-west-1).reader : null
+  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : ""
+  redis_read_endpoint     = local.is_redis ? one(module.redis-eu-west-1).reader : ""
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -131,8 +131,8 @@ module "eb-us-east-1" {
   vpc_id                  = one(module.vpc-us-east-1).vpc_id
   vpc_subnets             = one(module.vpc-us-east-1).subnets
   tags                    = local.tags
-  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : null
-  redis_read_endpoint     = local.is_redis ? one(module.redis-us-east-1).reader : null
+  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : ""
+  redis_read_endpoint     = local.is_redis ? one(module.redis-us-east-1).reader : ""
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments

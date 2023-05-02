@@ -85,6 +85,12 @@ variable "is_production" {
   default     = true
 }
 
+variable "is_nat_instance" {
+  type        = bool
+  description = "Nat Instance"
+  default     = false
+}
+
 variable "vpc_peerings" {
   type        = map(any)
   description = "VPC Peering Ids"
