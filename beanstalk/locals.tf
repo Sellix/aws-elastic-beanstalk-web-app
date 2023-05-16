@@ -3,7 +3,7 @@ data "aws_region" "current" {}
 locals {
   aws_region = data.aws_region.current.name
 
-  codebuild_envs = distinct([for v in values(var.environments) : v["versions"]["codebuild"]])
+  codebuild_envs = distinct([for v in values(var.environments) : v.versions.codebuild])
 
   env = { for env_name, vals in var.environments : env_name => {
     ELASTIC_BEANSTALK_PORT = 8080

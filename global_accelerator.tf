@@ -1,6 +1,12 @@
+locals {
+  ga_environments = { for k, v in local.environments : k => v
+    if tobool(lookup(v, "global_accelerator", false))
+  }
+}
+
 resource "aws_globalaccelerator_accelerator" "production-ga" {
   provider        = aws.eu-west-1
-  for_each        = (local.is_production && var.is_global_accelerator) ? local.environments : {}
+  for_each        = local.is_production ? local.ga_environments : {}
   name            = "sellix-${each.key}-ga"
   ip_address_type = "IPV4"
   enabled         = true
@@ -29,7 +35,7 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
   for_each                = aws_globalaccelerator_accelerator.production-ga
   listener_arn            = aws_globalaccelerator_listener.production-ga-listener[each.key].id
   traffic_dial_percentage = 50
-  health_check_path       = local.environments[each.key]["healthcheck"]
+  health_check_path       = local.ga_environments[each.key]["healthcheck"]
   health_check_port       = 80
 
   dynamic "endpoint_configuration" {
@@ -37,17 +43,22 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
 
     content {
       client_ip_preservation_enabled = true
-      endpoint_id                    = endpoint_configuration.id
+      endpoint_id                    = endpoint_configuration.value
     }
+  }
+  
+  lifecycle {
+    # replace_triggered_by = [module.eb-eu-west-1]
+    ignore_changes = [endpoint_configuration, health_check_path]
   }
 }
 
 resource "aws_globalaccelerator_endpoint_group" "production-ga-us-eg" {
-  provider                = aws.eu-west-1
+  provider                = aws.us-east-1
   for_each                = aws_globalaccelerator_accelerator.production-ga
   listener_arn            = aws_globalaccelerator_listener.production-ga-listener[each.key].id
   traffic_dial_percentage = 50
-  health_check_path       = local.environments[each.key]["healthcheck"]
+  health_check_path       = local.ga_environments[each.key]["healthcheck"]
   health_check_port       = 80
 
   dynamic "endpoint_configuration" {
@@ -55,7 +66,12 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-us-eg" {
 
     content {
       client_ip_preservation_enabled = true
-      endpoint_id                    = endpoint_configuration.id
+      endpoint_id                    = endpoint_configuration.value
     }
+  }
+
+  lifecycle {
+    # replace_triggered_by = [one(module.eb-us-east-1)]
+    ignore_changes = [endpoint_configuration, health_check_path]
   }
 }
