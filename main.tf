@@ -70,7 +70,7 @@ module "vpc-us-east-1" {
   count  = local.is_production ? 1 : 0
   source = "./vpc"
   providers = {
-    aws = aws.eu-west-1
+    aws = aws.us-east-1
   }
   azs                    = var.preferred_azs
   tags                   = local.tags
@@ -149,4 +149,11 @@ output "eu-west-1_eb-cname" {
 
 output "us-east-1_eb-cname" {
   value = module.eb-us-east-1[*].eb_cname
+}
+
+output "global_accelerator-cname" {
+  value = {
+    for env_name, v in aws_globalaccelerator_accelerator.production-ga :
+    env_name => v.dns_name
+  }
 }

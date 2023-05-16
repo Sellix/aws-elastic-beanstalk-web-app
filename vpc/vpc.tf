@@ -139,8 +139,8 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
   vpc_id = aws_vpc.sellix-eb-vpc.id
   route {
     cidr_block           = "0.0.0.0/0"
-    nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
-    network_interface_id = length(aws_instance.fuck-nat) ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
+    nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) > 0 ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
+    network_interface_id = length(aws_instance.fuck-nat) > 0 ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
   }
   dynamic "route" { // peering with backend
     for_each = (var.is_production && local.is_peering) ? [1] : []

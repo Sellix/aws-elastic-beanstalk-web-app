@@ -14,6 +14,7 @@
             },
             "domain": "sdlName",
             "enabled": "true",
+            "global_accelerator": "true",
             "redis": "false",
             "versions": {
                 "codebuild": "6",

@@ -56,12 +56,6 @@ variable "environments" {
   default     = null
 }
 
-variable "is_global_accelerator" {
-  type        = bool
-  description = "enable aws global accelerator on beanstalk"
-  default     = false
-}
-
 variable "redis_port" {
   type        = number
   description = "Redis listening port"
