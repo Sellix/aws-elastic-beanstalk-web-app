@@ -21,14 +21,3 @@ resource "aws_security_group" "sellix-eb-fuck-nat-security-group" {
     "Name" = "${var.tags["Project"]}-fuck-nat-security-group"
   })
 }
-
-resource "aws_security_group_rule" "sellix-eb-legacy-vpc-peering-security-group" {
-  count             = (var.is_production && local.is_peering) ? 1 : 0
-  description       = "Allow HTTPs Incoming traffic to legacy-vpc (APIs)"
-  security_group_id = var.legacy-vpc-sg
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = [var.main_cidr_block]
-}

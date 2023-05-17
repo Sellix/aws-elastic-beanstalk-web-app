@@ -20,8 +20,6 @@ data "aws_region" "current" {}
 locals {
   aws_region = data.aws_region.current.name
 
-  is_peering = length(var.legacy-peering-conn-id) > 0
-
   availability_zones = [
     for az in var.azs : format("%s%s", local.aws_region, az)
   ]
@@ -60,18 +58,6 @@ variable "azs" {
   default     = []
 }
 
-variable "legacy-vpc-cidr-block" {
-  type        = string
-  description = "legacy vpc cidr"
-  default     = null
-}
-
-variable "legacy-vpc-sg" {
-  type        = string
-  description = "legacy vpc sg id"
-  default     = null
-}
-
 variable "main_cidr_block" {
   type        = string
   description = "main cidr"
@@ -88,12 +74,6 @@ variable "is_nat_instance" {
   type        = bool
   description = "Nat Instance"
   default     = false
-}
-
-variable "legacy-peering-conn-id" {
-  type        = string
-  description = "VPC Peering Id"
-  default     = ""
 }
 
 output "vpc_id" {

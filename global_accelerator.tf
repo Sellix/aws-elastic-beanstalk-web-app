@@ -46,7 +46,7 @@ resource "aws_globalaccelerator_endpoint_group" "production-ga-eu-eg" {
       endpoint_id                    = endpoint_configuration.value
     }
   }
-  
+
   lifecycle {
     # replace_triggered_by = [module.eb-eu-west-1]
     ignore_changes = [endpoint_configuration, health_check_path]
