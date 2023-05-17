@@ -33,14 +33,8 @@
             "production": ""
         }
     },
-    "vpc_peerings": {
-        "eu-west-1": {
-            "staging": "",
-            "production": ""
-        },
-        "us-east-1": {
-            "staging": "",
-            "production": ""
-        }
+    "legacy-vpc" : {
+        "rts_id": [],
+        "vpc_id": []
     }
 }

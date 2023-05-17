@@ -14,12 +14,6 @@ variable "main_cidr_block" {
   default     = "172.0.0.0/8"
 }
 
-variable "legacy-vpc-cidr-block" {
-  type        = string
-  description = "legacy vpc cidr"
-  default     = "10.192.0.0/16"
-}
-
 variable "legacy-vpc-sg" {
   type        = string
   description = "legacy vpc sg id"
@@ -32,11 +26,13 @@ variable "ssl_arn" {
   default     = {}
 }
 
+/*
 variable "vpc_peerings" {
   type        = map(any)
   description = "VPC Peering Ids"
   default     = {}
 }
+*/
 
 variable "codestar_connection_arn" {
   type        = string
@@ -78,4 +74,10 @@ variable "preferred_azs" {
   type        = list(string)
   description = "List of preferred azs"
   default     = ["b", "c"]
+}
+
+variable "legacy-vpc" {
+  type        = map(any)
+  description = "Legacy Infos"
+  default     = null
 }

@@ -142,6 +142,7 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) > 0 ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
     network_interface_id = length(aws_instance.fuck-nat) > 0 ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
   }
+  /*
   dynamic "route" { // peering with backend
     for_each = (var.is_production && local.is_peering) ? [1] : []
     content {
@@ -149,9 +150,13 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
       vpc_peering_connection_id = var.legacy-peering-conn-id
     }
   }
+  */
+
   lifecycle {
     create_before_destroy = "true"
+    ignore_changes        = [route]
   }
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-private-route-table-${element(local.availability_zones, count.index)}"
     },

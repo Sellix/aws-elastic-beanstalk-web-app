@@ -5,16 +5,18 @@ locals {
 
   codebuild_envs = distinct([for v in values(var.environments) : v.versions.codebuild])
 
-  env = { for env_name, vals in var.environments : env_name => {
+  env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = "${vals["domain"]}.${var.is_production ? "io" : "gg"}"
+    DOMAIN                 = "${vals.domain}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
-    REDIS_HOST             = var.redis_endpoint
-    REDIS_PORT             = 6379
-    REDIS_URL              = "redis://${var.redis_endpoint}:6379"
-    REDIS_URL_READ         = "redis://${var.redis_read_endpoint}:6379"
-    }
+    },
+    (tobool(vals.redis) && length(var.redis_endpoint) > 0) ? {
+      REDIS_HOST     = var.redis_endpoint
+      REDIS_PORT     = 6379
+      REDIS_URL      = "redis://${var.redis_endpoint}:6379"
+      REDIS_URL_READ = "redis://${var.redis_read_endpoint}:6379"
+    } : {})
   }
 
   ssl_arn = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")

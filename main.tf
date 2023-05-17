@@ -34,8 +34,8 @@ provider "aws" {
 
 locals {
   is_production = length(regexall("production", terraform.workspace)) > 0
-  environments  = { for k, v in var.environments : k => v if tobool(v.enabled) }
-  is_redis      = length({ for k, v in local.environments : k => v if tobool(v.redis) }) > 0
+  environments  = { for k, v in var.environments : k => v if tobool(lookup(v, "enabled", false)) }
+  is_redis      = anytrue([for k, v in local.environments : tobool(lookup(v, "redis", false))])
   eu_main_cidr  = cidrsubnet(var.main_cidr_block, 8, ((local.is_production ? 0 : 2) + length(terraform.workspace)) % 256)
   us_main_cidr  = cidrsubnet(var.main_cidr_block, 8, (1 + length(terraform.workspace)) % 256)
   tags = {
@@ -57,13 +57,10 @@ module "vpc-eu-west-1" {
   providers = {
     aws = aws.eu-west-1
   }
-  azs                    = var.preferred_azs
-  tags                   = local.tags
-  legacy-vpc-cidr-block  = var.legacy-vpc-cidr-block
-  legacy-vpc-sg          = var.legacy-vpc-sg
-  main_cidr_block        = local.eu_main_cidr
-  is_production          = local.is_production
-  legacy-peering-conn-id = lookup(var.vpc_peerings["eu-west-1"], terraform.workspace, "")
+  azs             = var.preferred_azs
+  tags            = local.tags
+  main_cidr_block = local.eu_main_cidr
+  is_production   = local.is_production
 }
 
 module "vpc-us-east-1" {
@@ -72,13 +69,42 @@ module "vpc-us-east-1" {
   providers = {
     aws = aws.us-east-1
   }
-  azs                    = var.preferred_azs
-  tags                   = local.tags
-  legacy-vpc-cidr-block  = var.legacy-vpc-cidr-block
-  legacy-vpc-sg          = var.legacy-vpc-sg
-  main_cidr_block        = local.us_main_cidr
-  is_production          = local.is_production
-  legacy-peering-conn-id = lookup(var.vpc_peerings["us-east-1"], terraform.workspace, "")
+  azs             = var.preferred_azs
+  tags            = local.tags
+  main_cidr_block = local.us_main_cidr
+  is_production   = local.is_production
+}
+
+module "eb-to-legacy_alb-eu-peering" {
+  count  = local.is_production ? 1 : 0
+  source = "./peering"
+  providers = {
+    aws.first  = aws.eu-west-1,
+    aws.second = aws.eu-west-1
+  }
+
+  tags     = local.tags
+  rts_1    = var.legacy-vpc.rts_id
+  vpc_id_1 = one(var.legacy-vpc.vpc_id)
+
+  rts_2    = module.vpc-eu-west-1.rts["private"]
+  vpc_id_2 = module.vpc-eu-west-1.vpc_id
+}
+
+module "eb-to-legacy_alb-us-peering" {
+  count  = local.is_production ? 1 : 0
+  source = "./peering"
+  providers = {
+    aws.first  = aws.eu-west-1,
+    aws.second = aws.us-east-1
+  }
+
+  tags     = local.tags
+  rts_1    = var.legacy-vpc.rts_id
+  vpc_id_1 = one(var.legacy-vpc.vpc_id)
+
+  rts_2    = one(module.vpc-us-east-1).rts["private"]
+  vpc_id_2 = one(module.vpc-us-east-1).vpc_id
 }
 
 module "eb-eu-west-1" {
@@ -114,11 +140,9 @@ module "eu-us-cross-region-vpc-peering" {
   tags     = local.tags
   rts_1    = module.vpc-eu-west-1.rts["private"]
   vpc_id_1 = module.vpc-eu-west-1.vpc_id
-  cidr_1   = local.eu_main_cidr
 
   rts_2    = one(module.vpc-us-east-1).rts["private"]
   vpc_id_2 = one(module.vpc-us-east-1).vpc_id
-  cidr_2   = local.us_main_cidr
 }
 
 module "eb-us-east-1" {
