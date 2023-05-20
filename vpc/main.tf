@@ -2,11 +2,13 @@ terraform {
   required_version = ">= 0.13"
   required_providers {
     aws = {
-      "source" = "hashicorp/aws"
+      source = "hashicorp/aws"
+      version = "~> 4.0"
     }
   }
 }
 
+/*
 data "aws_availability_zones" "available" {
   state = "available"
   filter {
@@ -14,6 +16,7 @@ data "aws_availability_zones" "available" {
     values = ["opted-in", "opt-in-not-required"]
   }
 }
+*/
 
 data "aws_region" "current" {}
 

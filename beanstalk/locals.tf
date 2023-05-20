@@ -38,7 +38,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBScheme"
-      value     = "public"
+      value     = "public" // elb sg
     },
     {
       namespace = "aws:ec2:vpc"

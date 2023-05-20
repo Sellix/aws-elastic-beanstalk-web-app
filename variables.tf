@@ -14,12 +14,6 @@ variable "main_cidr_block" {
   default     = "172.0.0.0/8"
 }
 
-variable "legacy-vpc-sg" {
-  type        = string
-  description = "legacy vpc sg id"
-  default     = "sg-0e0341d00f96b7cc0"
-}
-
 variable "ssl_arn" {
   type        = map(any)
   description = "SSL Certificate ARN"
