@@ -1,9 +1,22 @@
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
 
 locals {
-  aws_region = data.aws_region.current.name
+  aws_region     = data.aws_region.current.name
+  aws_account_id = data.aws_caller_identity.current.account_id
 
-  codebuild_envs = distinct([for v in values(var.environments) : v.versions.codebuild])
+  docker_environments = { for k, v in var.environments : k =>
+    can(v.versions.codebuild) ?
+    v.versions.codebuild : var.default_codebuild_image
+  if lower(lookup(v, "stack_name", "")) == "docker" }
+  non_docker_environments = setsubtract(toset(keys(var.environments)), toset(keys(local.docker_environments)))
+
+  codebuild_envs = toset(concat(
+    [for k, v in var.environments : can(v.versions.codebuild) ?
+      v.versions.codebuild : var.default_codebuild_image
+    if contains(local.non_docker_environments, k)],
+    tolist(keys(local.docker_environments))
+  ))
 
   env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
@@ -11,6 +24,10 @@ locals {
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
     },
+    length(local.docker_environments) > 0 ? {
+      AWS_REGION     = local.aws_region
+      AWS_ACCOUNT_ID = local.aws_account_id
+    } : {},
     (tobool(vals.redis) && length(var.redis_endpoint) > 0) ? {
       REDIS_HOST     = var.redis_endpoint
       REDIS_PORT     = 6379
@@ -235,7 +252,7 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
-      value     = local.is_ssl ? local.ssl_arn : tobool(false)
+      value     = local.ssl_arn
     },
     {
       namespace = "aws:elbv2:loadbalancer"

@@ -85,3 +85,10 @@ variable "ssl_listener" {
   description = "Application Listens SSL"
   default     = true
 }
+
+// https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
+variable "default_codebuild_image" {
+  type        = string
+  description = "Default Codebuild, AWS Curated Docker Image"
+  default     = "aws/codebuild/amazonlinux2-aarch64-standard:3.0"
+}

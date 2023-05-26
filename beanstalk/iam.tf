@@ -71,10 +71,11 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "elasticloadbalancing:RegisterTargets",
       "elasticloadbalancing:DeregisterTargets",
       "iam:ListRoles",
-      "codebuild:CreateProject",
+      /* "codebuild:CreateProject",
       "codebuild:DeleteProject",
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild",
+      */
       "cloudwatch:PutMetricAlarm",
     ]
     effect    = "Allow"
@@ -107,7 +108,7 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
     condition {
       test     = "StringEquals"
       variable = "iam:PassedToService"
-      values   = ["ec2.amazonaws.com"]
+      values   = ["ec2.amazonaws.com"] // https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/iam-servicerole.html
     }
   }
 }
@@ -141,6 +142,25 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     ]
     effect    = "Allow"
     resources = ["*"]
+  }
+
+  statement {
+    sid       = "ECRAuthToken"
+    actions   = ["ecr:GetAuthorizationToken"]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "ECRAccess"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:DescribeRepositories",
+      "ecr:BatchGetImage",
+    ]
+    effect    = "Allow"
+    resources = [for _, v in aws_ecr_repository.sellix-ecr : v.arn]
   }
 
   statement {
@@ -247,6 +267,7 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-policy-sts-document" {
 }
 
 data "aws_iam_policy_document" "sellix-eb-codebuild-assumerole-policy-document" {
+  // https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html
   statement {
     sid    = "AllowCodeBuildAssumeRole"
     effect = "Allow"
@@ -279,6 +300,7 @@ data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
   }
 }
 
+// https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html
 data "aws_iam_policy_document" "sellix-eb-codebuild-policy-document" {
   statement {
     sid    = "AllowS3"
@@ -314,30 +336,41 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-codestar-connection-policy-d
     actions = [
       "codestar-connections:UseConnection"
     ]
-    resources = [
-      var.codestar_connection_arn
-    ]
+    resources = [var.codestar_connection_arn]
   }
 }
 
 data "aws_iam_policy_document" "sellix-eb-codebuild-permissions-policy-document" {
   statement {
-    sid = ""
+    sid       = "ECRToken"
+    actions   = ["ecr:GetAuthorizationToken"]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "CBECRPerms"
     actions = [
-      "codecommit:GitPull",
       "ecr:BatchCheckLayerAvailability",
       "ecr:CompleteLayerUpload",
-      "ecr:GetAuthorizationToken",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
       "ecr:UploadLayerPart",
-      "ecs:RunTask",
-      "iam:PassRole",
+    ]
+    effect    = "Allow"
+    resources = [for _, v in aws_ecr_repository.sellix-ecr : v.arn]
+  }
+  statement {
+    sid = "CBDefaultPerms"
+    actions = [
+      "codecommit:GitPull",
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
+      /* "ecs:RunTask",
+      "iam:PassRole",
       "ssm:GetParameters",
-      "secretsmanager:GetSecretValue",
+      "secretsmanager:GetSecretValue", */
     ]
     effect = "Allow"
     resources = [
@@ -364,8 +397,9 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-s3-permissions-policy-doc
 }
 
 data "aws_iam_policy_document" "sellix-eb-kms-key-policy-document" {
+  // see https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html#setting-up-kms
   statement {
-    sid = "Stmt"
+    sid = "KeyAllow"
     actions = [
       "kms:DescribeKey",
       "kms:GenerateDataKey*",
@@ -375,6 +409,11 @@ data "aws_iam_policy_document" "sellix-eb-kms-key-policy-document" {
     ]
     effect    = "Allow"
     resources = [aws_kms_key.sellix-eb-kms-key.arn]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [local.aws_account_id]
+    }
   }
 }
 

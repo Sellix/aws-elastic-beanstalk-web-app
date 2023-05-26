@@ -1,3 +1,4 @@
+// https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html#setting-up-kms
 resource "aws_kms_key" "sellix-eb-kms-key" {
   description         = "ElasticBeanstalk ${var.tags["Project"]} Key"
   enable_key_rotation = true

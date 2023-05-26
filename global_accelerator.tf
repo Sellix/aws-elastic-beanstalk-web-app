@@ -1,5 +1,5 @@
 locals {
-  ga_environments = { for k, v in local.environments : k => v
+  ga_environments = { for k, v in local.multi_region_environments : k => v
     if tobool(lookup(v, "global_accelerator", false))
   }
 }

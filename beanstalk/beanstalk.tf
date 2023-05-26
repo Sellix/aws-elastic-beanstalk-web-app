@@ -1,8 +1,8 @@
-data "aws_elastic_beanstalk_solution_stack" "nodejs" {
+data "aws_elastic_beanstalk_solution_stack" "stack" {
   for_each    = var.environments
   most_recent = true
 
-  name_regex = "^64bit Amazon Linux (.*) running Node.js ${each.value["versions"]["nodejs"]}$"
+  name_regex = trimspace("^64bit Amazon Linux (.*) running ${each.value.stack_name}$ ${lookup(each.value.versions, each.value.stack_name, "")}")
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
@@ -11,7 +11,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[each.key].name
+  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.stack[each.key].name
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"
@@ -75,7 +75,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
-    value     = each.value["healthcheck"]
+    value     = lookup(each.value, "healthcheck", "/")
     resource  = ""
   }
   setting {
@@ -125,7 +125,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
 resource "aws_elastic_beanstalk_application" "sellix-eb" {
   name        = var.tags["Project"]
-  description = "NodeJS Web Application"
+  description = "Web Application"
 
   appversion_lifecycle {
     service_role          = aws_iam_role.sellix-eb-service-role.arn
@@ -134,8 +134,8 @@ resource "aws_elastic_beanstalk_application" "sellix-eb" {
   }
 
   tags = var.tags
-  
+
   lifecycle {
-    ignore_changes = [ tags ]
+    ignore_changes = [tags]
   }
 }

@@ -39,7 +39,12 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = aws_codebuild_project.sellix-eb[each.value["versions"]["codebuild"]].name
+        ProjectName = aws_codebuild_project.sellix-eb[contains(
+          keys(local.docker_environments),
+          each.key) ? each.key :
+          can(each.value.versions.codebuild) ?
+          each.value.versions.codebuild : var.default_codebuild_image
+        ].name
       }
     }
   }
@@ -66,8 +71,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
 }
 
 resource "aws_codebuild_project" "sellix-eb" {
-  for_each       = toset(local.codebuild_envs)
-  name           = "${var.tags["Project"]}-codebuild-${each.key}"
+  for_each       = local.codebuild_envs
+  name           = "${var.tags["Project"]}-codebuild"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
   encryption_key = aws_kms_key.sellix-eb-kms-key.arn
@@ -79,11 +84,36 @@ resource "aws_codebuild_project" "sellix-eb" {
     type  = "LOCAL"
   }
   environment {
-    type                        = "LINUX_CONTAINER"
+    type = (length(
+      regexall("arm|aarch",
+        lookup(local.docker_environments, each.key, each.key)
+      )
+    ) > 0 ? "ARM_CONTAINER" : "LINUX_CONTAINER")
     compute_type                = "BUILD_GENERAL1_LARGE"
-    image                       = "aws/codebuild/standard:${each.key}.0"
+    image                       = lookup(local.docker_environments, each.key, each.key)
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = false
+    privileged_mode             = contains(keys(aws_ecr_repository.sellix-ecr), each.key)
+
+    dynamic "environment_variable" {
+      for_each = contains(keys(aws_ecr_repository.sellix-ecr), each.key) ? [
+        {
+          name  = "AWS_REGION"
+          value = local.aws_region
+        },
+        {
+          name  = "AWS_ACCOUNT_ID"
+          value = local.aws_account_id
+        },
+        {
+          name  = "IMAGE_REPO_NAME"
+          value = reverse(split("/", aws_ecr_repository.sellix-ecr[each.key].repository_url))[0]
+        }
+      ] : []
+      content {
+        name  = environment_variable.value.name
+        value = environment_variable.value.value
+      }
+    }
   }
   source {
     type = "CODEPIPELINE"
