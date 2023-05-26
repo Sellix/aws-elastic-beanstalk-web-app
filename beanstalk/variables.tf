@@ -92,3 +92,9 @@ variable "default_codebuild_image" {
   description = "Default Codebuild, AWS Curated Docker Image"
   default     = "aws/codebuild/amazonlinux2-aarch64-standard:3.0"
 }
+
+variable "ecr_enabled" {
+  type        = bool
+  description = "Create ECR Repository"
+  default     = true
+}

@@ -4,7 +4,7 @@
 */
 
 resource "aws_ecr_repository" "sellix-ecr" {
-  for_each             = local.docker_environments
+  for_each             = var.ecr_enabled ? local.docker_environments : {}
   name                 = "${var.tags["Project"]}-${each.key}"
   image_tag_mutability = "MUTABLE"
   force_delete         = true

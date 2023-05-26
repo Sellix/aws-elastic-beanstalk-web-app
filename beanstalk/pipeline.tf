@@ -92,10 +92,10 @@ resource "aws_codebuild_project" "sellix-eb" {
     compute_type                = "BUILD_GENERAL1_LARGE"
     image                       = lookup(local.docker_environments, each.key, each.key)
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = contains(keys(aws_ecr_repository.sellix-ecr), each.key)
+    privileged_mode             = contains(keys(local.docker_environments), each.key)
 
     dynamic "environment_variable" {
-      for_each = contains(keys(aws_ecr_repository.sellix-ecr), each.key) ? [
+      for_each = contains(keys(local.docker_environments), each.key) ? [
         {
           name  = "AWS_REGION"
           value = local.aws_region
@@ -105,8 +105,11 @@ resource "aws_codebuild_project" "sellix-eb" {
           value = local.aws_account_id
         },
         {
-          name  = "IMAGE_REPO_NAME"
-          value = reverse(split("/", aws_ecr_repository.sellix-ecr[each.key].repository_url))[0]
+          name = "IMAGE_REPO_NAME"
+          value = reverse(split("/",
+            (contains(keys(aws_ecr_repository.sellix-ecr), each.key) ?
+            aws_ecr_repository.sellix-ecr[each.key].repository_url : "")
+          ))[0]
         }
       ] : []
       content {
