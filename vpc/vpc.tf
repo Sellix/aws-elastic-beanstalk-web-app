@@ -12,7 +12,7 @@ resource "aws_vpc" "sellix-eb-vpc" {
 
 resource "aws_eip" "sellix-eb-eip" {
   count = var.is_production ? length(local.availability_zones) : 0
-  vpc   = "true"
+  domain   = "vpc"
   tags = merge({
     "Name" = "${var.tags["Project"]}-eip-${element(local.availability_zones, count.index)}"
     },
