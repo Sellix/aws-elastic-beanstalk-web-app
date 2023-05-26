@@ -1,25 +1,14 @@
 data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
   statement {
-    sid = "EBRequirements"
+    sid    = "ASGReq"
+    effect = "Allow"
     actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:DescribeAutoScalingInstances",
-      "autoscaling:DescribeScalingActivities",
-      "autoscaling:DescribeNotificationConfigurations",
       "autoscaling:AttachInstances",
       "autoscaling:CreateAutoScalingGroup",
       "autoscaling:CreateLaunchConfiguration",
       "autoscaling:DeleteLaunchConfiguration",
       "autoscaling:DeleteAutoScalingGroup",
       "autoscaling:DeleteScheduledAction",
-      "autoscaling:DescribeAccountLimits",
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:DescribeAutoScalingInstances",
-      "autoscaling:DescribeLaunchConfigurations",
-      "autoscaling:DescribeLoadBalancers",
-      "autoscaling:DescribeNotificationConfigurations",
-      "autoscaling:DescribeScalingActivities",
-      "autoscaling:DescribeScheduledActions",
       "autoscaling:DetachInstances",
       "autoscaling:PutScheduledUpdateGroupAction",
       "autoscaling:ResumeProcesses",
@@ -29,18 +18,65 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "autoscaling:TerminateInstanceInAutoScalingGroup",
       "autoscaling:UpdateAutoScalingGroup",
       "autoscaling:PutNotificationConfiguration",
-      "ec2:DescribeInstances",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:*:launchConfiguration:*:launchConfigurationName/awseb-e-*",
+      "arn:aws:autoscaling:*:*:launchConfiguration:*:launchConfigurationName/eb-*",
+      "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/awseb-e-*",
+      "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/eb-*"
+    ]
+  }
+
+  statement {
+    sid    = "ELBReq"
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+      "elasticloadbalancing:ConfigureHealthCheck",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+      "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets",
+    ]
+    resources = [
+      "arn:aws:elasticloadbalancing:*:*:targetgroup/awseb-*",
+      "arn:aws:elasticloadbalancing:*:*:targetgroup/eb-*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/awseb-*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/eb-*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/*/awseb-*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/*/eb-*/*"
+    ]
+  }
+
+  statement {
+    sid       = "TerminateInstanceReq"
+    effect    = "Allow"
+    actions   = ["ec2:TerminateInstances"]
+    resources = ["arn:aws:ec2:*:*:instance/*"]
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/aws:cloudformation:stack-id"
+      values = [
+        "arn:aws:cloudformation:*:*:stack/awseb-e-*",
+        "arn:aws:cloudformation:*:*:stack/eb-*"
+      ]
+    }
+  }
+
+  statement {
+    sid = "EBRequirements"
+    actions = [
+      "autoscaling:DescribeScalingActivities",
+      "autoscaling:DescribeNotificationConfigurations",
+      "autoscaling:DescribeAccountLimits",
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeLaunchConfigurations",
+      "autoscaling:DescribeLoadBalancers",
+      "autoscaling:DescribeScheduledActions",
       "ec2:DescribeInstanceStatus",
-      "ec2:GetConsoleOutput",
-      "ec2:AssociateAddress",
-      "ec2:DescribeAddresses",
-      "ec2:DescribeSecurityGroups",
-      "ec2:AssociateAddress",
-      "ec2:AllocateAddress",
-      "ec2:AuthorizeSecurityGroupEgress",
-      "ec2:AuthorizeSecurityGroupIngress",
-      "ec2:CreateSecurityGroup",
-      "ec2:DeleteSecurityGroup",
       "ec2:DescribeAccountAttributes",
       "ec2:DescribeAddresses",
       "ec2:DescribeImages",
@@ -50,26 +86,21 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "ec2:DescribeSnapshots",
       "ec2:DescribeSubnets",
       "ec2:DescribeVpcs",
+      "ec2:AssociateAddress",
       "ec2:DisassociateAddress",
+      "ec2:AllocateAddress",
       "ec2:ReleaseAddress",
-      "ec2:RevokeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
       "ec2:RevokeSecurityGroupIngress",
-      "ec2:TerminateInstances",
+      "ec2:RevokeSecurityGroupEgress",
+      // "ec2:GetConsoleOutput",
       "elasticloadbalancing:DescribeInstanceHealth",
       "elasticloadbalancing:DescribeLoadBalancers",
       "elasticloadbalancing:DescribeTargetHealth",
-      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-      "elasticloadbalancing:ConfigureHealthCheck",
-      "elasticloadbalancing:CreateLoadBalancer",
-      "elasticloadbalancing:DeleteLoadBalancer",
-      "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-      "elasticloadbalancing:DescribeInstanceHealth",
-      "elasticloadbalancing:DescribeLoadBalancers",
-      "elasticloadbalancing:DescribeTargetHealth",
-      "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
       "elasticloadbalancing:DescribeTargetGroups",
-      "elasticloadbalancing:RegisterTargets",
-      "elasticloadbalancing:DeregisterTargets",
       /*
       "iam:ListRoles",
       "codebuild:CreateProject",
