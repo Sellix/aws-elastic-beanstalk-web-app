@@ -41,3 +41,6 @@ terraform apply
 ### Switch Workspaces
 
 `terraform workspace select $ENV`
+
+## Additional Infos
+* [Enabling HealthD in a Docker Environment](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-serverlogs.html#health-enhanced-serverlogs.configure), Multi-Container Example
