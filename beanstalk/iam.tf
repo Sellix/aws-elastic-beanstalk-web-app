@@ -70,8 +70,9 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:RegisterTargets",
       "elasticloadbalancing:DeregisterTargets",
+      /*
       "iam:ListRoles",
-      /* "codebuild:CreateProject",
+      "codebuild:CreateProject",
       "codebuild:DeleteProject",
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild",
@@ -94,6 +95,18 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "arn:aws:cloudformation:*:*:stack/eb-*",
       "arn:aws:cloudformation:*:*:stack/awseb-*",
     ]
+  }
+
+  statement {
+    sid       = "AllowDeleteApplicationVersionLifecycle"
+    effect    = "Allow"
+    actions   = ["elasticbeanstalk:DeleteApplicationVersion"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "elasticbeanstalk:InApplication"
+      values   = [aws_elastic_beanstalk_application.sellix-eb.arn]
+    }
   }
 
   statement {
@@ -154,9 +167,7 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
   statement {
     sid = "ECRAccess"
     actions = [
-      "ecr:BatchCheckLayerAvailability",
       "ecr:GetDownloadUrlForLayer",
-      "ecr:DescribeRepositories",
       "ecr:BatchGetImage",
     ]
     effect    = "Allow"
@@ -275,10 +286,13 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-assumerole-policy-document" 
       "sts:AssumeRole",
     ]
     principals {
-      type = "Service"
-      identifiers = [
-        "codebuild.amazonaws.com",
-      ]
+      type        = "Service"
+      identifiers = ["codebuild.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.aws_account_id]
     }
   }
 }
@@ -363,11 +377,12 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-permissions-policy-document"
   statement {
     sid = "CBDefaultPerms"
     actions = [
-      "codecommit:GitPull",
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
-      /* "ecs:RunTask",
+      /*
+      "codecommit:GitPull",
+      "ecs:RunTask",
       "iam:PassRole",
       "ssm:GetParameters",
       "secretsmanager:GetSecretValue", */
@@ -409,11 +424,6 @@ data "aws_iam_policy_document" "sellix-eb-kms-key-policy-document" {
     ]
     effect    = "Allow"
     resources = [aws_kms_key.sellix-eb-kms-key.arn]
-    condition {
-      test     = "StringEquals"
-      variable = "kms:CallerAccount"
-      values   = [local.aws_account_id]
-    }
   }
 }
 
@@ -488,9 +498,9 @@ resource "aws_iam_role" "sellix-eb-codebuild-role" {
 }
 
 resource "aws_iam_policy" "sellix-eb-codebuild-permissions-policy" {
-  name   = "${var.tags["Project"]}-${local.aws_region}-codebuild-permissions-policy"
-  path   = "/service-role/"
-  policy = data.aws_iam_policy_document.sellix-eb-codebuild-permissions-policy-document.json
+  name        = "${var.tags["Project"]}-${local.aws_region}-codebuild-permissions-policy"
+  description = "CodeBuild Service Role"
+  policy      = data.aws_iam_policy_document.sellix-eb-codebuild-permissions-policy-document.json
 }
 
 resource "aws_iam_policy" "sellix-eb-codebuild-policy" {
@@ -527,7 +537,7 @@ resource "aws_iam_policy" "sellix-eb-kms-key-policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-policy-attachment" {
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk"
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy"
   role       = aws_iam_role.sellix-eb-codepipeline-role.id
 }
 

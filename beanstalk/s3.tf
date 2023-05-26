@@ -1,13 +1,74 @@
 // https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html#setting-up-kms
+data "aws_iam_policy_document" "sellix-kms-key-usage" {
+  statement {
+    sid       = "AllowRoot"
+    effect    = "Allow"
+    actions   = ["*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.aws_account_id}:root"]
+    }
+  }
+  statement {
+    sid    = "AllowS3"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["s3.${local.aws_region}.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [local.aws_account_id]
+    }
+  }
+  statement {
+    sid    = "AllowCodeBuild"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.sellix-eb-codebuild-role.arn]
+    }
+  }
+}
+
 resource "aws_kms_key" "sellix-eb-kms-key" {
   description         = "ElasticBeanstalk ${var.tags["Project"]} Key"
   enable_key_rotation = true
+  policy              = data.aws_iam_policy_document.sellix-kms-key-usage.json
   tags = merge(
     {
-      "Name" = "${var.tags["Project"]}-kms-key"
+      Name = "${var.tags["Project"]}-kms-key"
     },
     var.tags
   )
+}
+
+resource "aws_kms_alias" "sellix-eb-kms-alias" {
+  name          = "alias/${var.tags["Project"]}"
+  target_key_id = aws_kms_key.sellix-eb-kms-key.id
 }
 
 resource "aws_s3_bucket" "sellix-eb-codepipeline-s3-bucket" {
