@@ -21,8 +21,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       output_artifacts = ["sellix-eb-artifacts"]
       configuration = {
         ConnectionArn        = var.codestar_connection_arn
-        FullRepositoryId     = each.value["github"]["repo"]
-        BranchName           = each.value["github"]["branch"]
+        FullRepositoryId     = can(each.value["github"]["repo"]) ? each.value["github"]["repo"] : ""
+        BranchName           = can(each.value["github"]["branch"]) ? each.value["github"]["branch"] : ""
         DetectChanges        = !var.is_production
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }

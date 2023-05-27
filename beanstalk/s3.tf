@@ -10,6 +10,7 @@ data "aws_iam_policy_document" "sellix-kms-key-usage" {
       identifiers = ["arn:aws:iam::${local.aws_account_id}:root"]
     }
   }
+
   statement {
     sid    = "AllowS3"
     effect = "Allow"
@@ -36,6 +37,7 @@ data "aws_iam_policy_document" "sellix-kms-key-usage" {
       values   = [local.aws_account_id]
     }
   }
+
   statement {
     sid    = "AllowCodeBuild"
     effect = "Allow"

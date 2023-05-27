@@ -1,12 +1,30 @@
+/*
+  see
+  https://docs.aws.amazon.com/service-authorization/latest/reference/
+*/
+
 data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
   statement {
-    sid    = "ASGReq"
+    sid    = "ASGLaunchConfigPerms"
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateLaunchConfiguration",
+      "autoscaling:DeleteLaunchConfiguration",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:*:launchConfiguration:*:launchConfigurationName/awseb-e-*",
+      "arn:aws:autoscaling:*:*:launchConfiguration:*:launchConfigurationName/eb-*",
+      "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/awseb-e-*",
+      "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/eb-*"
+    ]
+  }
+
+  statement {
+    sid    = "ASGPerms"
     effect = "Allow"
     actions = [
       "autoscaling:AttachInstances",
       "autoscaling:CreateAutoScalingGroup",
-      "autoscaling:CreateLaunchConfiguration",
-      "autoscaling:DeleteLaunchConfiguration",
       "autoscaling:DeleteAutoScalingGroup",
       "autoscaling:DeleteScheduledAction",
       "autoscaling:DetachInstances",
@@ -25,6 +43,24 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/awseb-e-*",
       "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/eb-*"
     ]
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/aws:cloudformation:stack-id"
+      values = [
+        "arn:aws:cloudformation:*:*:stack/awseb-e-*",
+        "arn:aws:cloudformation:*:*:stack/eb-*"
+      ]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/elasticbeanstalk:environment-name"
+      values   = [for env_name, _ in var.environments : "${var.tags["Project"]}-${env_name}"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/Project"
+      values   = [var.tags["Project"]]
+    }
   }
 
   statement {
@@ -51,9 +87,12 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
   }
 
   statement {
-    sid       = "TerminateInstanceReq"
-    effect    = "Allow"
-    actions   = ["ec2:TerminateInstances"]
+    sid    = "TerminateInstanceReq"
+    effect = "Allow"
+    actions = [
+      "ec2:TerminateInstances",
+      "ec2:GetConsoleOutput" // enhanced health
+    ]
     resources = ["arn:aws:ec2:*:*:instance/*"]
     condition {
       test     = "StringLike"
@@ -63,17 +102,62 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
         "arn:aws:cloudformation:*:*:stack/eb-*"
       ]
     }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/elasticbeanstalk:environment-name"
+      values   = [for env_name, _ in var.environments : "${var.tags["Project"]}-${env_name}"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/Project"
+      values   = [var.tags["Project"]]
+    }
+  }
+
+  statement {
+    sid    = "EBSGPerms"
+    effect = "Allow"
+    actions = [
+      "ec2:AssociateAddress",
+      "ec2:DisassociateAddress",
+      "ec2:ReleaseAddress",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/aws:cloudformation:stack-id"
+      values = [
+        "arn:aws:cloudformation:*:*:stack/awseb-e-*",
+        "arn:aws:cloudformation:*:*:stack/eb-*"
+      ]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/elasticbeanstalk:environment-name"
+      values   = [for env_name, _ in var.environments : "${var.tags["Project"]}-${env_name}"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/Project"
+      values   = [var.tags["Project"]]
+    }
   }
 
   statement {
     sid = "EBRequirements"
     actions = [
-      "autoscaling:DescribeScalingActivities",
       "autoscaling:DescribeNotificationConfigurations",
       "autoscaling:DescribeAccountLimits",
       "autoscaling:DescribeAutoScalingGroups",
       "autoscaling:DescribeAutoScalingInstances",
       "autoscaling:DescribeLaunchConfigurations",
+      "autoscaling:DescribeScalingActivities",
       "autoscaling:DescribeLoadBalancers",
       "autoscaling:DescribeScheduledActions",
       "ec2:DescribeInstanceStatus",
@@ -86,17 +170,7 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "ec2:DescribeSnapshots",
       "ec2:DescribeSubnets",
       "ec2:DescribeVpcs",
-      "ec2:AssociateAddress",
-      "ec2:DisassociateAddress",
       "ec2:AllocateAddress",
-      "ec2:ReleaseAddress",
-      "ec2:AuthorizeSecurityGroupEgress",
-      "ec2:AuthorizeSecurityGroupIngress",
-      "ec2:CreateSecurityGroup",
-      "ec2:DeleteSecurityGroup",
-      "ec2:RevokeSecurityGroupIngress",
-      "ec2:RevokeSecurityGroupEgress",
-      // "ec2:GetConsoleOutput",
       "elasticloadbalancing:DescribeInstanceHealth",
       "elasticloadbalancing:DescribeLoadBalancers",
       "elasticloadbalancing:DescribeTargetHealth",
@@ -108,10 +182,21 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild",
       */
-      "cloudwatch:PutMetricAlarm",
     ]
     effect    = "Allow"
     resources = ["*"]
+  }
+
+  statement {
+    sid    = "CWPutMetricAlarmOperationPermissions"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:PutMetricAlarm"
+    ]
+    resources = [
+      "arn:aws:cloudwatch:*:*:alarm:awseb-*",
+      "arn:aws:cloudwatch:*:*:alarm:eb-*"
+    ]
   }
 
   statement {
@@ -140,6 +225,49 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
     }
   }
 
+  /*
+  statement { // only if codepipeline is enabled
+    sid = "AllowLifecycleS3SourceBundleDeletion"
+    effect = "Allow"
+    actions = ["s3:DeleteObject", "s3:GetBucketLocation"]
+    resources = ["${aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.arn}/*", aws_s3_bucket.sellix-eb-codepipeline-s3-bucket.arn]
+  }
+
+  /* needed for lifecycle, versions and manifest management,
+     but actually we are using codepipeline's bucket to store the artifacts
+     and codepipeline's deploy role to deploy and store applications.
+  */
+
+  /*
+  statement {
+    sid    = "EBDefaultS3BucketPerms"
+    effect = "Allow"
+    actions = [
+      "s3:GetBucketLocation",
+      "s3:GetBucketPolicy",
+      "s3:ListBucket",
+      "s3:PutBucketPolicy"
+    ]
+    resources = ["arn:aws:s3:::elasticbeanstalk-${local.aws_region}-${local.aws_account_id}"]
+  }
+
+  statement {
+    sid    = "EBDefaultS3BucketObjectsPerms"
+    effect = "Allow"
+    actions = [
+      "s3:DeleteObject",
+      "s3:GetObject",
+      "s3:GetObjectAcl",
+      "s3:GetObjectVersion",
+      "s3:GetObjectVersionAcl",
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+      "s3:PutObjectVersionAcl"
+    ]
+    resources = ["arn:aws:s3:::elasticbeanstalk-${local.aws_region}-${local.aws_account_id}/*"]
+  }
+  */
+
   statement {
     sid = "AllowPassRole"
     actions = [
@@ -158,6 +286,17 @@ data "aws_iam_policy_document" "sellix-eb-service-req-policy-document" {
 }
 
 data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
+  statement { // needed for instance logs retrieval
+    sid = "DefaultS3BucketWriteLogs"
+    actions = [
+      "s3:PutObject"
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:s3:::elasticbeanstalk-${local.aws_region}-${local.aws_account_id}/resources/environments/logs/*"
+    ]
+  }
+
   statement {
     sid = "CloudWatchLogsAccess"
     actions = [
@@ -196,7 +335,7 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
   }
 
   statement {
-    sid = "ECRAccess"
+    sid = "ECRReadAccess"
     actions = [
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchGetImage",
@@ -205,20 +344,27 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     resources = [for _, v in aws_ecr_repository.sellix-ecr : v.arn]
   }
 
+  /*
   statement {
-    sid = "BucketAccess"
+    sid = "S3BucketPerms"
     actions = [
-      "s3:Get*",
-      "s3:List*",
-      "s3:PutObject",
-      "s3:DeleteObject"
+      "s3:ListBucket",
+      "s3:ListBucketVersions",
+    ]
+    resources = ["arn:aws:s3:::elasticbeanstalk-${local.aws_region}-${local.aws_account_id}"]
+  }
+  statement { // found it in S3 bucket permissions
+    sid = "S3BucketAccessRead"
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
     ]
     effect = "Allow"
     resources = [
-      "arn:aws:s3:::elasticbeanstalk-${local.aws_region}*",
-      "arn:aws:s3:::elasticbeanstalk-${local.aws_region}*/*"
+      "arn:aws:s3:::elasticbeanstalk-${local.aws_region}-${local.aws_account_id}/resources/environments/*"
     ]
   }
+  */
 
   statement {
     sid = "ElasticBeanstalkHealthAccess"
@@ -245,23 +391,11 @@ data "aws_iam_policy_document" "sellix-eb-ec2-policy-document" {
     }
     effect = "Allow"
   }
-
-  /*statement {
-    sid = ""
-    actions = [
-      "sts:AssumeRole",
-    ]
-    principals {
-      type        = "Service"
-      identifiers = ["ssm.amazonaws.com"]
-    }
-    effect = "Allow"
-  }*/
 }
 
 data "aws_iam_policy_document" "sellix-eb-elb-policy-document" {
   statement {
-    sid = ""
+    sid = "ELBS3WriteLogs"
     actions = [
       "s3:PutObject",
     ]
@@ -330,7 +464,7 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-assumerole-policy-document" 
 
 data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
   statement {
-    sid = ""
+    sid = "EBHealthNotifications"
     actions = [
       "sns:Publish"
     ]
@@ -376,7 +510,7 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-policy-document" {
 
 data "aws_iam_policy_document" "sellix-eb-codebuild-codestar-connection-policy-document" {
   statement {
-    sid    = ""
+    sid    = "CodeBuildCodestar"
     effect = "Allow"
     actions = [
       "codestar-connections:UseConnection"
@@ -416,7 +550,8 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-permissions-policy-document"
       "ecs:RunTask",
       "iam:PassRole",
       "ssm:GetParameters",
-      "secretsmanager:GetSecretValue", */
+      "secretsmanager:GetSecretValue"
+      */
     ]
     effect = "Allow"
     resources = [
@@ -427,7 +562,7 @@ data "aws_iam_policy_document" "sellix-eb-codebuild-permissions-policy-document"
 
 data "aws_iam_policy_document" "sellix-eb-codepipeline-s3-permissions-policy-document" {
   statement {
-    sid = ""
+    sid = "CodePipelineBucketPerms"
     actions = [
       "s3:GetObject",
       "s3:GetObjectVersion",
@@ -460,7 +595,7 @@ data "aws_iam_policy_document" "sellix-eb-kms-key-policy-document" {
 
 data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-permissions-policy-document" {
   statement {
-    sid = ""
+    sid = "CodepipelineOnCodebuildPerms"
     actions = [
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild"
@@ -472,7 +607,7 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-permissions-pol
 
 data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-policy-document" {
   statement {
-    sid = ""
+    sid = "CodePipelineCodestar"
     actions = [
       "codestar-connections:UseConnection"
     ]
@@ -588,11 +723,6 @@ resource "aws_iam_role_policy_attachment" "sellix-eb-service-policy-attachment" 
 resource "aws_iam_role_policy_attachment" "sellix-eb-web-tier-policy-attachment" {
   role       = aws_iam_role.sellix-eb-ec2-role.name
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
-}
-
-resource "aws_iam_role_policy_attachment" "sellix-eb-worker-tier-policy-attachment" {
-  role       = aws_iam_role.sellix-eb-ec2-role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"
 }
 */
 
