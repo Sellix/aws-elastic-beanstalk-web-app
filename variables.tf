@@ -75,3 +75,15 @@ variable "legacy-vpc" {
   description = "Legacy Infos"
   default     = null
 }
+
+variable "cloudflare-api-token" {
+  type = string
+  description = "cloudflare api token with IP PREFIXES Read"
+  default = ""
+}
+
+variable "cloudflare_enabled" {
+  type = bool
+  description = "allow cf only on sgs"
+  default = false
+}

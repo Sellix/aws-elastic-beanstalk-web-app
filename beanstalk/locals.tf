@@ -55,7 +55,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBScheme"
-      value     = "public" // elb sg
+      value     = "internal" // elb sg, edit it to have [public]-facing alb
     },
     {
       namespace = "aws:ec2:vpc"
@@ -69,7 +69,7 @@ locals {
     }
   ]
 
-  environment = var.is_production ? concat([
+  environment = concat(var.is_production ? concat([
     {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "EnvironmentType"
@@ -80,11 +80,6 @@ locals {
       name      = "LoadBalancerType"
       value     = "application"
     },
-    {
-      namespace = "aws:elasticbeanstalk:environment"
-      name      = "ServiceRole"
-      value     = aws_iam_role.sellix-eb-service-role.arn
-    }
     ],
     flatten([for process, options in local.eb_processes : tobool(options.valid) ? [{
       namespace = "aws:elasticbeanstalk:environment:process:${process}"
@@ -127,7 +122,13 @@ locals {
       name      = "EnvironmentType"
       value     = "SingleInstance"
     }
-  ]
+  ], [
+        {
+      namespace = "aws:elasticbeanstalk:environment"
+      name      = "ServiceRole"
+      value     = aws_iam_role.sellix-eb-service-role.arn
+    }
+  ])
 
   cloudwatch = [
     {
@@ -236,6 +237,11 @@ locals {
   alb = [
     {
       namespace = "aws:elbv2:loadbalancer"
+      name      = "ManagedSecurityGroup" // SecurityGroups
+      value     = aws_security_group.sellix-eb-elb-security-group.id
+    },
+    {
+      namespace = "aws:elbv2:loadbalancer"
       name      = "SecurityGroups"
       value     = aws_security_group.sellix-eb-elb-security-group.id
     },
@@ -253,6 +259,11 @@ locals {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLCertificateArns"
       value     = local.ssl_arn
+    },
+    {
+      namespace = "aws:elbv2:listener:443"
+      name      = "SSLPolicy"
+      value     = "ELBSecurityPolicy-TLS13-1-2-2021-06"
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -279,7 +290,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value     = aws_security_group.sellix-eb-security-group.id
+      value     = join(", ", [aws_security_group.sellix-eb-security-group.id], !var.is_production ? [aws_security_group.sellix-eb-elb-security-group.id] : [])
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"

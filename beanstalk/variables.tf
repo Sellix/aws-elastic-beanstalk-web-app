@@ -98,3 +98,9 @@ variable "ecr_enabled" {
   description = "Create ECR Repository"
   default     = true
 }
+
+variable "cloudflare_enabled" {
+  type = bool
+  description = "allow cf only on sgs"
+  default = false
+}

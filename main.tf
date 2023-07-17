@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
   backend "s3" {
     profile        = "sellix-terraform"
@@ -14,6 +18,10 @@ terraform {
     dynamodb_table = "sellix-deployments"
     key            = "eb-web-app.tfstate"
   }
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare-api-token
 }
 
 provider "aws" {
@@ -116,6 +124,7 @@ module "eb-eu-west-1" {
   source = "./beanstalk"
   providers = {
     aws = aws.eu-west-1
+    cloudflare = cloudflare
   }
   tags                    = local.tags
   main_cidr_block         = local.eu_main_cidr
@@ -131,6 +140,7 @@ module "eb-eu-west-1" {
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
+  cloudflare_enabled = var.cloudflare_enabled
 }
 
 // redis
@@ -156,6 +166,7 @@ module "eb-us-east-1" {
   source = "./beanstalk"
   providers = {
     aws = aws.us-east-1
+    cloudflare = cloudflare
   }
   main_cidr_block         = local.us_main_cidr
   vpc_id                  = one(module.vpc-us-east-1).vpc_id
@@ -171,6 +182,7 @@ module "eb-us-east-1" {
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
+  cloudflare_enabled = var.cloudflare_enabled
 }
 
 output "eu-west-1_eb-cname" {

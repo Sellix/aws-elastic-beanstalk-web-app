@@ -72,7 +72,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
 
 resource "aws_codebuild_project" "sellix-eb" {
   for_each       = local.codebuild_envs
-  name           = "${var.tags["Project"]}-codebuild"
+  name           = "${var.tags["Project"]}-${contains(keys(local.docker_environments), each.key)
+  ? each.key : substr(each.key, -3, -1)}-codebuild"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
   encryption_key = aws_kms_key.sellix-eb-kms-key.arn

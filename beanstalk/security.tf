@@ -42,6 +42,8 @@ locals {
   elb_listening_ports = concat([80], local.is_ssl ? [443] : [])
 }
 
+data "cloudflare_ip_ranges" "cloudflare" {}
+
 resource "aws_security_group" "sellix-eb-elb-security-group" {
   name        = "${var.tags["Project"]}-elb-security-group"
   description = "ELB traffic"
@@ -55,7 +57,7 @@ resource "aws_security_group" "sellix-eb-elb-security-group" {
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = var.cloudflare_enabled ? data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks : ["0.0.0.0/0"]
     }
   }
 

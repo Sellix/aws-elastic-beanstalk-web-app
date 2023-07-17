@@ -117,7 +117,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   }
 
   lifecycle {
-    ignore_changes = [setting]
+    ignore_changes = [setting, solution_stack_name]
   }
 
   tags = var.tags

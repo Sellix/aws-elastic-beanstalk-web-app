@@ -1,12 +1,12 @@
 data "aws_arn" "eb-eu-alb-arns-decode" {
   provider = aws.eu-west-1
-  for_each = module.eb-eu-west-1.eb_load_balancers
+  for_each = local.is_production ? module.eb-eu-west-1.eb_load_balancers : {}
   arn      = one(each.value)
 }
 
 data "aws_arn" "eb-us-alb-arns-decode" {
   provider = aws.us-east-1
-  for_each = length(local.multi_region_environments) > 0 ? one(module.eb-us-east-1).eb_load_balancers : {}
+  for_each = local.is_production && length(local.multi_region_environments) > 0 ? one(module.eb-us-east-1).eb_load_balancers : {}
   arn      = one(each.value)
 }
 
