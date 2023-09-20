@@ -11,7 +11,13 @@ variable "aws_secret_key" {
 variable "main_cidr_block" {
   type        = string
   description = "main cidr"
-  default     = "172.0.0.0/8"
+  default     = "172.16.0.0/12"
+}
+
+variable "subnets" {
+  type        = list(string)
+  description = "multi-region subnets"
+  default     = ["172.16.0.0/16", "172.17.0.0/16"]
 }
 
 variable "ssl_arn" {
@@ -77,13 +83,13 @@ variable "legacy-vpc" {
 }
 
 variable "cloudflare-api-token" {
-  type = string
+  type        = string
   description = "cloudflare api token with IP PREFIXES Read"
-  default = ""
+  default     = ""
 }
 
 variable "cloudflare_enabled" {
-  type = bool
-  description = "allow cf only on sgs"
-  default = false
+  type        = bool
+  description = "restrict incoming traffic"
+  default     = false
 }

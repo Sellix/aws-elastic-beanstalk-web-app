@@ -97,7 +97,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
   dynamic "setting" {
     for_each = concat(
-      local.vpc,
+      local.vpc[each.key],
       local.environment,
       local.cloudwatch,
       local.healthcheck,

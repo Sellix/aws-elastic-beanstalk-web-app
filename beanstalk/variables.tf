@@ -100,7 +100,7 @@ variable "ecr_enabled" {
 }
 
 variable "cloudflare_enabled" {
-  type = bool
-  description = "allow cf only on sgs"
-  default = false
+  type        = bool
+  description = "restrict incoming traffic"
+  default     = false
 }

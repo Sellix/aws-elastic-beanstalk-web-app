@@ -1,0 +1,49 @@
+#!/bin/sh
+
+if [ -f .env ]; then
+    source .env
+else
+    echo "ensure .env exists"
+    exit 0
+fi
+
+if [[ ! `which terraform` ]]; then
+    echo "install terraform.io"
+    exit 0
+fi
+
+WORKSPACE=$(terraform workspace show)
+
+# edit:
+# * $0 workspace list
+# * $0 workspace select WORKSPACE_NAME
+# * cat <<< $(jq 'MATCH_SYNTAX = EDITED_JSON' terraform.tfvars.json) > terraform.tfvars.json
+
+case $1 in
+    "workspace")
+        case $2 in
+            "select"|"new")
+            if test -f terraform.tfvars.json; then
+                aws s3 cp --quiet terraform.tfvars.json "$DST_PATH/$WORKSPACE.json"
+            fi
+            terraform $@
+            aws s3 cp --quiet "$DST_PATH/`terraform workspace show`.json" terraform.tfvars.json || cp terraform.tfvars.template.json terraform.tfvars.json
+            exit 0
+            ;;
+        esac
+        ;;
+    "download")
+    if [ -z "$3" ]; then
+        aws s3 cp --quiet "$DST_PATH/$3" "terraform.$3.tfvars.json" || echo "chosen workspace doesn't exist remotely"
+    else
+        echo "usage: $0 $1 WORKSPACE_NAME"
+    fi
+    exit 0
+    ;;
+    "save")
+    aws s3 cp --quiet terraform.tfvars.json "$DST_PATH/$WORKSPACE.json"
+    exit 0
+    ;;
+esac
+
+terraform $@

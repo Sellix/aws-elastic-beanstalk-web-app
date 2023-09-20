@@ -9,7 +9,7 @@ resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
     from_port   = var.redis_port
     to_port     = var.redis_port
     protocol    = "tcp"
-    cidr_blocks = [local.eu_main_cidr]
+    cidr_blocks = concat([local.eu_main_cidr], local.is_production ? [local.us_main_cidr] : [])
   }
   egress {
     description = "consent Redis updates"
@@ -62,7 +62,7 @@ module "redis-eu-west-1" {
   is_production              = local.is_production
   tags                       = local.tags
   sgr_id                     = one(aws_security_group.sellix-redis-eu-west-1-sg).id
-  node_type                  = local.is_production ? "cache.t3.medium" : "cache.t4g.small"
+  node_type                  = local.is_production ? "cache.r6g.large" : "cache.t4g.small"
   subnet_ids                 = local.is_production ? module.vpc-eu-west-1.subnets["private"][*] : module.vpc-eu-west-1.subnets["public"][*]
   port                       = var.redis_port
   num_cache_cluster          = local.is_production ? 2 : 1

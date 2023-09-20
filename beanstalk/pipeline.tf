@@ -70,9 +70,10 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
   )
 }
 
+// https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
 resource "aws_codebuild_project" "sellix-eb" {
-  for_each       = local.codebuild_envs
-  name           = "${var.tags["Project"]}-${contains(keys(local.docker_environments), each.key)
+  for_each = local.codebuild_envs
+  name = "${var.tags["Project"]}-${contains(keys(local.docker_environments), each.key)
   ? each.key : substr(each.key, -3, -1)}-codebuild"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
@@ -81,7 +82,7 @@ resource "aws_codebuild_project" "sellix-eb" {
     type = "CODEPIPELINE"
   }
   cache {
-    modes = ["LOCAL_SOURCE_CACHE"]
+    modes = [can(local.docker_environments[each.key]) ? "LOCAL_DOCKER_LAYER_CACHE" : "LOCAL_SOURCE_CACHE"]
     type  = "LOCAL"
   }
   environment {
@@ -96,23 +97,27 @@ resource "aws_codebuild_project" "sellix-eb" {
     privileged_mode             = contains(keys(local.docker_environments), each.key)
 
     dynamic "environment_variable" {
-      for_each = contains(keys(local.docker_environments), each.key) ? [
-        {
-          name  = "AWS_REGION"
-          value = local.aws_region
-        },
-        {
-          name  = "AWS_ACCOUNT_ID"
-          value = local.aws_account_id
-        },
-        {
-          name = "IMAGE_REPO_NAME"
-          value = reverse(split("/",
-            (contains(keys(aws_ecr_repository.sellix-ecr), each.key) ?
-            aws_ecr_repository.sellix-ecr[each.key].repository_url : "")
-          ))[0]
-        }
-      ] : []
+      for_each = concat(
+        contains(keys(local.docker_environments), each.key) ? [
+          {
+            name  = "AWS_REGION"
+            value = local.aws_region
+          },
+          {
+            name  = "AWS_ACCOUNT_ID"
+            value = local.aws_account_id
+          },
+          {
+            name = "IMAGE_REPO_NAME"
+            value = reverse(split("/",
+              (contains(keys(aws_ecr_repository.sellix-ecr), each.key) ?
+              aws_ecr_repository.sellix-ecr[each.key].repository_url : "")
+            ))[0]
+          },
+        ] : [],
+        [for k, v in lookup(var.environments[each.key], "codebuild_vars", {}) :
+        { name = k, value = v }]
+      )
       content {
         name  = environment_variable.value.name
         value = environment_variable.value.value

@@ -49,8 +49,9 @@ locals {
   is_peering = anytrue([for k, v in local.environments : tobool(lookup(v, "peering", false))])
   is_redis   = anytrue([for k, v in local.environments : tobool(lookup(v, "redis", false))])
 
-  eu_main_cidr = cidrsubnet(var.main_cidr_block, 8, ((local.is_production ? 0 : 2) + length(terraform.workspace)) % 256)
-  us_main_cidr = cidrsubnet(var.main_cidr_block, 8, (1 + length(terraform.workspace)) % 256)
+  eu_main_cidr = var.subnets[0]
+  us_main_cidr = local.is_production && can(var.subnets[1]) ? var.subnets[1] : ""
+
   tags = {
     "Project"     = "sellix-eb-${terraform.workspace}"
     "Environment" = terraform.workspace
@@ -123,7 +124,7 @@ module "eb-to-legacy_alb-us-peering" {
 module "eb-eu-west-1" {
   source = "./beanstalk"
   providers = {
-    aws = aws.eu-west-1
+    aws        = aws.eu-west-1
     cloudflare = cloudflare
   }
   tags                    = local.tags
@@ -140,7 +141,7 @@ module "eb-eu-west-1" {
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
-  cloudflare_enabled = var.cloudflare_enabled
+  cloudflare_enabled      = var.cloudflare_enabled
 }
 
 // redis
@@ -165,7 +166,7 @@ module "eb-us-east-1" {
   count  = (length(local.multi_region_environments) > 0) && local.is_production ? 1 : 0
   source = "./beanstalk"
   providers = {
-    aws = aws.us-east-1
+    aws        = aws.us-east-1
     cloudflare = cloudflare
   }
   main_cidr_block         = local.us_main_cidr
@@ -182,7 +183,7 @@ module "eb-us-east-1" {
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
-  cloudflare_enabled = var.cloudflare_enabled
+  cloudflare_enabled      = var.cloudflare_enabled
 }
 
 output "eu-west-1_eb-cname" {

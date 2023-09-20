@@ -3,9 +3,9 @@
         %{ for idx, region in keys(albs) ~}
         {
             "height": ${height},
-            "width": ${floor((24/max_regions_per_x) / pow(2, 0))},
-            "y": ${height*0},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 0))*0)%24},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 0) )},
+            "y": ${height*(0+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,0))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "metrics": [
@@ -24,9 +24,9 @@
         },
         {
             "height": ${height},
-            "width": ${floor( (24/max_regions_per_x) / pow(2, 1) )},
-            "y": ${height*1},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 1))*0)%24},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 1) )},
+            "y": ${height*(1+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,1))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "view": "timeSeries",
@@ -40,10 +40,10 @@
             }
         },
         {
-            "height": 6,
-            "width": ${floor( (24/max_regions_per_x) / pow(2, 1) )},
-            "y": ${height*1},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 1))*1)%24},
+            "height": ${height},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 1) )},
+            "y": ${height*(1+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(1/pow(2,1))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "view": "timeSeries",
@@ -81,9 +81,9 @@
         },
         {
             "height": ${height},
-            "width": ${floor( (24/max_regions_per_x) / pow(2, 0) )},
-            "y": ${height*2},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 0))*0)%24},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 0) )},
+            "y": ${height*(2+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,0))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "metrics": [
@@ -99,9 +99,9 @@
         },
         {
             "height": ${height},
-            "width": ${floor( (24/max_regions_per_x) / pow(2, 1) )},
-            "y": ${height*3},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 1))*0)%24},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 1) )},
+            "y": ${height*(3+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,1))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "metrics": [
@@ -117,9 +117,9 @@
         },
         {
             "height": ${height},
-            "width": ${floor( (24/max_regions_per_x) / pow(2, 1) )},
-            "y": ${height*3},
-            "x": ${((floor(24/max_regions_per_x) * idx) + floor((24/max_regions_per_x) / pow(2, 1))*1)%24},
+            "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 1) )},
+            "y": ${height*(3+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+            "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(1/pow(2,1))), cw_max_panel_width)},
             "type": "metric",
             "properties": {
                 "metrics": [

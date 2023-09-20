@@ -36,7 +36,7 @@ locals {
     } : {})
   }
 
-  ssl_arn = lookup(var.ssl_arn[local.aws_region], terraform.workspace, "")
+  ssl_arn = lookup(var.ssl_arn[local.aws_region], tostring(var.is_production), "")
   is_ssl  = length(local.ssl_arn) > 0
 
   eb_processes = var.ssl_listener ? {
@@ -46,7 +46,7 @@ locals {
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
   s.name => s.value if s.namespace == "aws:elasticbeanstalk:sns:topics" && s.name == "Notification Topic ARN" }*/
-  vpc = [
+  vpc = { for k, v in var.environments : k => [
     {
       namespace = "aws:ec2:vpc"
       name      = "VPCId"
@@ -55,7 +55,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBScheme"
-      value     = "internal" // elb sg, edit it to have [public]-facing alb
+      value     = !tobool(lookup(v, "global_accelerator", false)) ? "public" : "internal" // elb sg, edit it to have [public]-facing alb
     },
     {
       namespace = "aws:ec2:vpc"
@@ -67,7 +67,8 @@ locals {
       name      = "AssociatePublicIpAddress"
       value     = var.is_production ? tostring(false) : tostring(true)
     }
-  ]
+    ]
+  }
 
   environment = concat(var.is_production ? concat([
     {
@@ -122,8 +123,8 @@ locals {
       name      = "EnvironmentType"
       value     = "SingleInstance"
     }
-  ], [
-        {
+    ], [
+    {
       namespace = "aws:elasticbeanstalk:environment"
       name      = "ServiceRole"
       value     = aws_iam_role.sellix-eb-service-role.arn
@@ -290,7 +291,9 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value     = join(", ", [aws_security_group.sellix-eb-security-group.id], !var.is_production ? [aws_security_group.sellix-eb-elb-security-group.id] : [])
+      value     = join(", ", [aws_security_group.sellix-eb-security-group.id],
+      !var.is_production ?
+      [aws_security_group.sellix-eb-elb-security-group.id] : [])
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
