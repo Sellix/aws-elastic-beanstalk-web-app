@@ -468,13 +468,14 @@ data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
     actions = [
       "sns:Publish"
     ]
-    resources = [
-      data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"],
-      join("", [
+    resources = concat(
+      [
+        data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"]
+      ],
+      [
         for _, env_name in keys(var.environments) :
         "arn:aws:sns:${local.aws_region}:*:ElasticBeanstalkNotifications-Environment-${var.tags["Project"]}-${env_name}*"
-      ]),
-    ]
+    ])
     effect = "Allow"
   }
 }

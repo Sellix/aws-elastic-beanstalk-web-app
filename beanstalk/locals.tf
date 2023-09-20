@@ -291,14 +291,14 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value     = join(", ", [aws_security_group.sellix-eb-security-group.id],
-      !var.is_production ?
+      value = join(", ", [aws_security_group.sellix-eb-security-group.id],
+        !var.is_production ?
       [aws_security_group.sellix-eb-elb-security-group.id] : [])
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SSHSourceRestriction"
-      value     = "tcp, 22, 22, 127.0.0.1/32"
+      value     = "tcp,22,22,127.0.0.1/32"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"

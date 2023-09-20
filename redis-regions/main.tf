@@ -65,20 +65,21 @@ variable "transit_encryption_enabled" {
 data "aws_region" "current" {}
 
 resource "aws_elasticache_replication_group" "sellix-eb-redis" {
-  transit_encryption_enabled  = var.transit_encryption_enabled
-  at_rest_encryption_enabled  = true
+  transit_encryption_enabled  = var.is_primary ? var.transit_encryption_enabled : null
+  at_rest_encryption_enabled  = var.is_primary ? true : null
   replication_group_id        = "${var.tags["Project"]}-redis"
   description                 = "${var.tags["Project"]}-redis"
-  engine                      = "redis"
-  node_type                   = var.node_type
+  engine                      = var.is_primary ? "redis" : null
+  node_type                   = var.is_primary ? var.node_type : null
   port                        = var.port
   security_group_ids          = [var.sgr_id]
   apply_immediately           = true
   automatic_failover_enabled  = var.is_production
   num_cache_clusters          = var.num_cache_cluster
-  multi_az_enabled            = var.is_production
+  multi_az_enabled            = var.is_primary ? var.is_production : null
   subnet_group_name           = aws_elasticache_subnet_group.sellix-eb-redis-subnet-group.name
-  auto_minor_version_upgrade  = true
+  // todo: fix
+  // auto_minor_version_upgrade  = var.is_primary ? true : null
   snapshot_retention_limit    = var.snapshot_retention_limit
   snapshot_window             = "04:30-05:30"
   global_replication_group_id = var.global_replication_group_id
@@ -107,4 +108,8 @@ output "reader" {
 
 output "writer" {
   value = var.is_primary ? aws_elasticache_replication_group.sellix-eb-redis.primary_endpoint_address : null
+}
+
+output "member_clusters" {
+  value = aws_elasticache_replication_group.sellix-eb-redis.member_clusters
 }

@@ -18,7 +18,7 @@ resource "aws_cloudwatch_dashboard" "main" { // use better data structure to be 
   dashboard_name = "${local.tags["Project"]}-${each.key}-dashboard"
   dashboard_body = templatefile("./cw_dashboard.tftpl", {
     cw_max_panel_width = 24
-    env_name = "${local.tags["Project"]}-${each.key}", // Beanstalk Environment Names
+    env_name           = "${local.tags["Project"]}-${each.key}", // Beanstalk Environment Names
     albs = merge({
       eu-west-1 = trimprefix(data.aws_arn.eb-eu-alb-arns-decode[each.key].resource, "loadbalancer/"),
       },

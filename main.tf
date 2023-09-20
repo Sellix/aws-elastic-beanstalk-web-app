@@ -208,3 +208,11 @@ output "eu-west-1_ecr" {
 output "us-east-1_ecr" {
   value = module.eb-us-east-1[*].ecr
 }
+
+output "eu-west-1_redis" {
+  value = module.redis-eu-west-1[*].member_clusters
+}
+
+output "us-east-1_redis" {
+  value = module.redis-us-east-1[*].member_clusters
+}
