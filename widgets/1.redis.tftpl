@@ -16,7 +16,7 @@
         "region": "${region}",
         "stat": "Average",
         "period": 300,
-        "title": "Redis FreeableMemory"
+        "title": "Redis ${upper(split("-", region)[0])} FreeableMemory"
     }
 },
 {
@@ -35,7 +35,7 @@
             %{endfor ~}
         ],
         "region": "${region}",
-        "title": "Redis CPUUtilization, EngineCPUUtilization"
+        "title": "Redis ${upper(split("-", region)[0])} CPU Stats"
     }
 }%{ if idx < length(redis)-1 ~},%{ endif }
 %{ endfor ~}]

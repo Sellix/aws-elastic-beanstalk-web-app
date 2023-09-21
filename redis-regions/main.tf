@@ -111,5 +111,5 @@ output "writer" {
 }
 
 output "member_clusters" {
-  value = aws_elasticache_replication_group.sellix-eb-redis.member_clusters
+  value = tolist(aws_elasticache_replication_group.sellix-eb-redis.member_clusters)
 }

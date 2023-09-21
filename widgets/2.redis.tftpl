@@ -14,7 +14,7 @@
             %{endfor ~}
         ],
         "region": "${region}",
-        "title": "Redis CurrItems"
+        "title": "Redis ${upper(split("-", region)[0])} CurrItems"
     }
 },
 {
@@ -32,7 +32,7 @@
             %{endfor ~}
         ],
         "region": "${region}",
-        "title": "Redis CacheHitRate"
+        "title": "Redis ${upper(split("-", region)[0])} CacheHitRate"
     }
 }%{ if idx < length(redis)-1 ~},%{ endif }
 %{ endfor ~}]

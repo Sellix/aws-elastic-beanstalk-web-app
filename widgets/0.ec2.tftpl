@@ -1,0 +1,22 @@
+[%{ for idx, region in keys(autoscaling) ~}
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(autoscaling))) / pow(2, 0) )},
+    "y": ${height*(8+(ceil((length(albs)+length(redis)+length(autoscaling)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(autoscaling)))*(idx+(0/pow(2,0))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "view": "timeSeries",
+        "stacked": false,
+        "metrics": [
+            %{ for idx, groupid in autoscaling[region] }
+            [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${groupid}", { "region": "${region}" } ]%{ if idx < length(autoscaling[region])-1 ~},%{ endif }
+            %{endfor ~}
+        ],
+        "region": "${region}",
+        "period": 300,
+        "stat": "Average",
+        "title": "AutoScaling ${upper(split("-", region)[0])} CPU %"
+    }
+}%{ if idx < length(autoscaling)-1 ~},%{ endif }
+%{ endfor ~}]
