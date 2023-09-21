@@ -1,0 +1,41 @@
+[%{ for idx, region in keys(redis) ~}
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(redis))) / pow(2, 1) )},
+    "y": ${height*(5+(ceil((length(albs)+length(redis)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(redis)))*(idx+(0/pow(2,1))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "metrics": [
+            %{ for idx, cache in redis[region] }
+            [ "AWS/ElastiCache", "FreeableMemory", "CacheClusterId", "${cache}", { "yAxis": "left" } ]%{ if idx < length(redis[region])-1 ~},%{ endif }
+            %{endfor ~}
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "stat": "Average",
+        "period": 300,
+        "title": "Redis FreeableMemory"
+    }
+},
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(redis))) / pow(2, 1) )},
+    "y": ${height*(5+(ceil((length(albs)+length(redis)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(redis)))*(idx+(1/pow(2,1))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "view": "timeSeries",
+        "stacked": false,
+        "metrics": [
+            %{ for idx, cache in redis[region] }
+            [ "AWS/ElastiCache", "EngineCPUUtilization", "CacheClusterId", "${cache}" ],
+            [ "AWS/ElastiCache", "CPUUtilization", "CacheClusterId", "${cache}" ]%{ if idx < length(redis[region])-1 ~},%{ endif }
+            %{endfor ~}
+        ],
+        "region": "${region}",
+        "title": "Redis CPUUtilization, EngineCPUUtilization"
+    }
+}%{ if idx < length(redis)-1 ~},%{ endif }
+%{ endfor ~}]

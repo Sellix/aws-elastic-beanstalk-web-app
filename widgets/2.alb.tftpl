@@ -1,0 +1,20 @@
+[%{ for idx, region in keys(albs) ~}
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 0) )},
+    "y": ${height*(2+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,0))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "metrics": [
+            [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "color": "#bcbd22" } ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "${upper(split("-", region)[0])} Response Time",
+        "period": 300,
+        "stat": "Average"
+    }
+}%{ if idx < length(albs)-1 ~},%{ endif }
+%{ endfor ~}]
