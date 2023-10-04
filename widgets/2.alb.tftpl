@@ -8,7 +8,10 @@
     "properties": {
         "metrics": [
             [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "color": "#bcbd22" } ],
-            [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "stat": "p99" } ]
+            [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "stat": "p99.9" } ],
+            [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "stat": "p95" } ],
+            [ "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "${albs[region]}", { "stat": "p50" } ]
+
         ],
         "view": "timeSeries",
         "stacked": false,

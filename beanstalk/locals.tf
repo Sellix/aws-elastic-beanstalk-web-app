@@ -55,7 +55,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBScheme"
-      value     = !tobool(lookup(v, "global_accelerator", false)) ? "public" : "internal" // elb sg, edit it to have [public]-facing alb
+      value     = !(var.is_production && tobool(lookup(v, "global_accelerator", false))) ? "public" : "internal" // elb sg, edit it to have [public]-facing alb
     },
     {
       namespace = "aws:ec2:vpc"
@@ -163,6 +163,15 @@ locals {
       value     = "7"
     },
   ]
+  per_app_healthcheck = {
+    for k, v in var.environments : k => [
+      {
+        namespace = "aws:elasticbeanstalk:environment:process:default"
+        name      = "HealthCheckPath"
+        value     = can(v.healthcheck) ? v.healthcheck : "/"
+      }
+    ]
+  }
   healthcheck = concat([
     {
       namespace = "aws:elasticbeanstalk:command"
@@ -170,7 +179,7 @@ locals {
       value     = "false"
     },
     ],
-    flatten([for process, options in local.eb_processes : tobool(options.valid) ? [
+    flatten([for process, options in local.eb_processes : tobool(options.valid) && var.is_production ? [
       {
         namespace = "aws:elasticbeanstalk:environment:process:${process}"
         name      = "HealthCheckInterval"
@@ -235,7 +244,7 @@ locals {
       value     = join(",", sort(var.vpc_subnets["public"][*]))
     }
   ]
-  alb = [
+  alb = var.is_production ? [
     {
       namespace = "aws:elbv2:loadbalancer"
       name      = "ManagedSecurityGroup" // SecurityGroups
@@ -264,7 +273,8 @@ locals {
     {
       namespace = "aws:elbv2:listener:443"
       name      = "SSLPolicy"
-      value     = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html
+      value = "ELBSecurityPolicy-TLS13-1-2-2021-06"
     },
     {
       namespace = "aws:elbv2:loadbalancer"
@@ -276,7 +286,7 @@ locals {
       name      = "AccessLogsS3Enabled"
       value     = "true"
     }
-  ]
+  ] : []
   autoscaling_launch_config = [
     {
       namespace = "aws:autoscaling:launchconfiguration"
@@ -321,86 +331,89 @@ locals {
       value     = "1 minute"
     }
   ]
-  autoscaling = [
-    {
-      namespace = "aws:autoscaling:asg"
-      name      = "Cooldown"
-      value     = "60"
-    },
-    {
-      namespace = "aws:autoscaling:asg"
-      name      = "EnableCapacityRebalancing"
-      value     = "false"
-    },
-    {
-      namespace = "aws:autoscaling:asg"
-      name      = "MinSize"
-      value     = var.is_production ? "2" : "1"
-    },
-    {
-      namespace = "aws:autoscaling:asg"
-      name      = "MaxSize"
-      value     = var.is_production ? "8" : "2"
-    },
-    {
-      namespace = "aws:autoscaling:updatepolicy:rollingupdate"
-      name      = "RollingUpdateType"
-      value     = "Immutable"
-    },
-    {
-      namespace = "aws:autoscaling:updatepolicy:rollingupdate"
-      name      = "Timeout"
-      value     = "PT30M"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "MeasureName"
-      value     = "CPUUtilization"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "Statistic"
-      value     = "Average"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "Unit"
-      value     = "Percent"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "LowerThreshold"
-      value     = "20"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "UpperThreshold"
-      value     = "70"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "LowerBreachScaleIncrement"
-      value     = "-1"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "UpperBreachScaleIncrement"
-      value     = "1"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "BreachDuration"
-      value     = "1"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "Period"
-      value     = "1"
-    },
-    {
-      namespace = "aws:autoscaling:trigger"
-      name      = "EvaluationPeriods"
-      value     = "1"
-    }
-  ]
+  autoscaling = concat(
+    var.is_production ? [
+      {
+        namespace = "aws:autoscaling:asg"
+        name      = "MaxSize"
+        value     = var.is_production ? "8" : "2"
+      },
+    ] : [],
+    [
+      {
+        namespace = "aws:autoscaling:asg"
+        name      = "Cooldown"
+        value     = "60"
+      },
+      {
+        namespace = "aws:autoscaling:asg"
+        name      = "EnableCapacityRebalancing"
+        value     = "false"
+      },
+      {
+        namespace = "aws:autoscaling:asg"
+        name      = "MinSize"
+        value     = var.is_production ? "2" : "1"
+      },
+      {
+        namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+        name      = "RollingUpdateType"
+        value     = "Immutable"
+      },
+      {
+        namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+        name      = "Timeout"
+        value     = "PT30M"
+    }],
+    var.is_production ? [
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "MeasureName"
+        value     = "CPUUtilization"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "Statistic"
+        value     = "Average"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "Unit"
+        value     = "Percent"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "LowerThreshold"
+        value     = "20"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "UpperThreshold"
+        value     = "70"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "LowerBreachScaleIncrement"
+        value     = "-1"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "UpperBreachScaleIncrement"
+        value     = "1"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "BreachDuration"
+        value     = "1"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "Period"
+        value     = "1"
+      },
+      {
+        namespace = "aws:autoscaling:trigger"
+        name      = "EvaluationPeriods"
+        value     = "1"
+  }] : [])
 }

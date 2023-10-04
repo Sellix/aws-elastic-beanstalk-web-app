@@ -19,7 +19,7 @@ locals {
 }
 
 # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
-# add redis
+# todo: https://emilenijssen.nl/8-aws-elastic-beanstalk-cloudwatch-ram-and-disk-monitoring/
 resource "aws_cloudwatch_dashboard" "main" { // use better data structure to be future-proof
   provider       = aws.eu-west-1
   for_each       = local.is_production ? local.environments : {}

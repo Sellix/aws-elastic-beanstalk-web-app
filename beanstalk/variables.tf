@@ -104,3 +104,9 @@ variable "cloudflare_enabled" {
   description = "restrict incoming traffic"
   default     = false
 }
+
+variable "default_instances" {
+  type        = map(list(string))
+  description = "Default Beanstalk Instance Types"
+  default     = { true : ["m6g.large"], false : ["m6g.medium"] }
+}

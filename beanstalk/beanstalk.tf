@@ -73,20 +73,18 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
     resource  = ""
   }
   setting {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "HealthCheckPath"
-    value     = lookup(each.value, "healthcheck", "/")
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "InstanceType"
-    value     = var.is_production ? "m6g.large" : "m6g.medium"
+    namespace = "aws:ec2:instances"
+    name      = "InstanceTypes"
+    value     = join(",", var.default_instances[var.is_production])
   }
 
   # environment
   dynamic "setting" {
-    for_each = merge(local.env[each.key], each.value["vars"])
+    for_each = merge(
+      local.env[each.key],
+      can(each.value.vars) ? each.value.vars : {},
+      can(each.value.region_vars) ? { for k, v in each.value.region_vars : k => lookup(v, local.aws_region, "") } : {}
+    )
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key
@@ -98,6 +96,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   dynamic "setting" {
     for_each = concat(
       local.vpc[each.key],
+      local.per_app_healthcheck[each.key],
       local.environment,
       local.cloudwatch,
       local.healthcheck,
@@ -117,7 +116,10 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   }
 
   lifecycle {
-    ignore_changes = [setting, solution_stack_name]
+    ignore_changes = [
+      setting,
+      solution_stack_name
+    ]
   }
 
   tags = var.tags
