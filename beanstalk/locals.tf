@@ -318,7 +318,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "RootVolumeSize"
-      value     = var.is_production ? "50" : "10"
+      value     = var.is_production ? "25" : "10"
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"

@@ -108,5 +108,5 @@ variable "cloudflare_enabled" {
 variable "default_instances" {
   type        = map(list(string))
   description = "Default Beanstalk Instance Types"
-  default     = { true : ["m6g.large"], false : ["m6g.medium"] }
+  default     = { true : ["m7g.large"], false : ["t4g.small"] }
 }
