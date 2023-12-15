@@ -127,12 +127,18 @@ module "eb-eu-west-1" {
     aws        = aws.eu-west-1
     cloudflare = cloudflare
   }
-  tags                    = local.tags
-  main_cidr_block         = local.eu_main_cidr
-  vpc_id                  = module.vpc-eu-west-1.vpc_id
-  vpc_subnets             = module.vpc-eu-west-1.subnets
-  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : ""
-  redis_read_endpoint     = local.is_redis ? one(module.redis-eu-west-1).reader : ""
+  tags            = local.tags
+  main_cidr_block = local.eu_main_cidr
+  vpc_id          = module.vpc-eu-west-1.vpc_id
+  vpc_subnets     = module.vpc-eu-west-1.subnets
+  redis_endpoint = (local.is_redis ?   //(local.is_production ?
+    one(module.redis-eu-west-1).writer //:
+    //one(module.redis-staging).NLB-endpoint)
+  : "")
+  redis_read_endpoint = (local.is_redis ? //(local.is_production ?
+    one(module.redis-eu-west-1).reader    //:
+    //one(module.redis-staging).NLB-endpoint)
+  : "")
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments

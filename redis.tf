@@ -1,5 +1,6 @@
 resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
-  count       = local.is_redis ? 1 : 0
+  count = local.is_redis ? 1 : 0
+  // (local.is_production && ... )
   provider    = aws.eu-west-1
   name        = "Redis eu-west-1 Security Group"
   description = "Redis Traffic SG"
@@ -56,8 +57,22 @@ locals {
   redis_node_type = local.is_production ? "cache.r6g.large" : "cache.t4g.small"
 }
 
+/*
+module "redis-staging" {
+  count = !local.is_production && local.is_redis ? 1 : 0
+  source = "git@github.com:Sellix/keydb-aws-tf.git"
+
+  vpc_id = module.vpc-eu-west-1.vpc_id
+  subnets = module.vpc-eu-west-1.subnets["public"]
+  instance_type = "t4g.nano"
+  replicas-per-az = 1
+  tags = local.tags
+}
+*/
+
 module "redis-eu-west-1" {
-  count  = local.is_redis ? 1 : 0
+  count = local.is_redis ? 1 : 0
+  // (local.is_production && ... )
   source = "./redis-regions"
   providers = {
     aws = aws.eu-west-1
