@@ -5,18 +5,14 @@ locals {
   aws_region     = data.aws_region.current.name
   aws_account_id = data.aws_caller_identity.current.account_id
 
-  docker_environments = { for k, v in var.environments : k =>
+  docker_environments = [for k, v in var.environments : k
+  if lower(lookup(v, "stack_name", "")) == "docker"]
+
+  codebuild_envs = {
+    for k, v in var.environments : k =>
     can(v.versions.codebuild) ?
     v.versions.codebuild : var.default_codebuild_image
-  if lower(lookup(v, "stack_name", "")) == "docker" }
-  non_docker_environments = setsubtract(toset(keys(var.environments)), toset(keys(local.docker_environments)))
-
-  codebuild_envs = toset(concat(
-    [for k, v in var.environments : can(v.versions.codebuild) ?
-      v.versions.codebuild : var.default_codebuild_image
-    if contains(local.non_docker_environments, k)],
-    tolist(keys(local.docker_environments))
-  ))
+  }
 
   env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
@@ -24,7 +20,7 @@ locals {
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
     },
-    length(local.docker_environments) > 0 ? {
+    contains(local.docker_environments, env_name) ? {
       AWS_REGION     = local.aws_region
       AWS_ACCOUNT_ID = local.aws_account_id
     } : {},

@@ -110,3 +110,9 @@ variable "default_instances" {
   description = "Default Beanstalk Instance Types"
   default     = { true : ["m7g.large"], false : ["t4g.small"] }
 }
+
+variable "build_secrets" {
+  type        = map(string)
+  description = "`codebuild environment` -> secret_name; useful for in-build dynamic variables"
+  default     = {}
+}

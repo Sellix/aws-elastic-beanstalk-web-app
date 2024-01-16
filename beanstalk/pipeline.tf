@@ -39,12 +39,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = aws_codebuild_project.sellix-eb[contains(
-          keys(local.docker_environments),
-          each.key) ? each.key :
-          can(each.value.versions.codebuild) ?
-          each.value.versions.codebuild : var.default_codebuild_image
-        ].name
+        ProjectName = aws_codebuild_project.sellix-eb[each.key].name
       }
     }
   }
@@ -72,33 +67,31 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
 
 // https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
 resource "aws_codebuild_project" "sellix-eb" {
-  for_each = local.codebuild_envs
-  name = "${var.tags["Project"]}-${contains(keys(local.docker_environments), each.key)
-  ? each.key : substr(each.key, -3, -1)}-codebuild"
+  for_each       = local.codebuild_envs
+  name           = "${var.tags["Project"]}-${each.key}-codebuild"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
   encryption_key = aws_kms_key.sellix-eb-kms-key.arn
+
   artifacts {
     type = "CODEPIPELINE"
   }
+
   cache {
-    modes = [can(local.docker_environments[each.key]) ? "LOCAL_DOCKER_LAYER_CACHE" : "LOCAL_SOURCE_CACHE"]
+    modes = [contains(local.docker_environments, each.key) ? "LOCAL_DOCKER_LAYER_CACHE" : "LOCAL_SOURCE_CACHE"]
     type  = "LOCAL"
   }
+
   environment {
-    type = (length(
-      regexall("arm|aarch",
-        lookup(local.docker_environments, each.key, each.key)
-      )
-    ) > 0 ? "ARM_CONTAINER" : "LINUX_CONTAINER")
+    type                        = (length(regexall("arm|aarch", each.value)) > 0 ? "ARM_CONTAINER" : "LINUX_CONTAINER")
     compute_type                = "BUILD_GENERAL1_LARGE"
-    image                       = lookup(local.docker_environments, each.key, each.key)
+    image                       = each.value
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = contains(keys(local.docker_environments), each.key)
+    privileged_mode             = contains(local.docker_environments, each.key)
 
     dynamic "environment_variable" {
       for_each = concat(
-        contains(keys(local.docker_environments), each.key) ? [
+        contains(local.docker_environments, each.key) ? [
           {
             name  = "AWS_REGION"
             value = local.aws_region
@@ -115,6 +108,12 @@ resource "aws_codebuild_project" "sellix-eb" {
             ))[0]
           },
         ] : [],
+        can(var.build_secrets[each.key]) ? [
+          {
+            name  = "BUILD_SECRET_ID"
+            value = var.build_secrets[each.key]
+          }
+        ] : [],
         [for k, v in lookup(var.environments[each.key], "codebuild_vars", {}) :
         { name = k, value = v }]
       )
@@ -124,9 +123,11 @@ resource "aws_codebuild_project" "sellix-eb" {
       }
     }
   }
+
   source {
     type = "CODEPIPELINE"
   }
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-codebuild-project"
     },

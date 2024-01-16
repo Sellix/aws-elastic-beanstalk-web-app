@@ -619,6 +619,24 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-poli
   }
 }
 
+data "aws_secretsmanager_secrets" "build-secrets" {
+  filter {
+    name   = "name"
+    values = values(var.build_secrets)
+  }
+}
+
+data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-buildsecrets-policy-document" {
+  statement {
+    effect = "Allow"
+    sid    = "CodeBuildRetrieveBuildSecret"
+    actions = [
+      "secretsmanager:GetSecretValue"
+    ]
+    resources = data.aws_secretsmanager_secrets.build-secrets.arns
+  }
+}
+
 data "aws_elb_service_account" "sellix-eb-elb-service" {}
 
 resource "aws_iam_role" "sellix-eb-codepipeline-role" {
@@ -697,6 +715,11 @@ resource "aws_iam_policy" "sellix-eb-codepipeline-codestar-permissions-policy" {
   policy = data.aws_iam_policy_document.sellix-eb-codepipeline-codestar-permissions-policy-document.json
 }
 
+resource "aws_iam_policy" "sellix-eb-codepipeline-codebuild-buildsecrets-policy" {
+  name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-codebuild-buildsecrets-policy"
+  policy = data.aws_iam_policy_document.sellix-eb-codepipeline-codebuild-buildsecrets-policy-document.json
+}
+
 resource "aws_iam_policy" "sellix-eb-kms-key-policy" {
   name        = "${var.tags["Project"]}-${local.aws_region}-kms-key-policy"
   description = "KMS Key Policy"
@@ -773,4 +796,9 @@ resource "aws_iam_role_policy_attachment" "sellix-eb-codebuild-kms-key-policy-at
 resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-kms-key-policy-attachment" {
   role       = aws_iam_role.sellix-eb-codepipeline-role.name
   policy_arn = aws_iam_policy.sellix-eb-kms-key-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-codebuild-buildsecrets-policy-attachment" {
+  role       = aws_iam_role.sellix-eb-codebuild-role.name
+  policy_arn = aws_iam_policy.sellix-eb-codepipeline-codebuild-buildsecrets-policy.arn
 }

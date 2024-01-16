@@ -148,6 +148,7 @@ module "eb-eu-west-1" {
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
   cloudflare_enabled      = var.cloudflare_enabled
+  build_secrets           = local.build_secrets
 }
 
 // redis
@@ -190,6 +191,7 @@ module "eb-us-east-1" {
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
   cloudflare_enabled      = var.cloudflare_enabled
+  build_secrets           = local.build_secrets
 }
 
 output "eu-west-1_eb-cname" {
