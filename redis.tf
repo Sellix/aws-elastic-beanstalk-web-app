@@ -53,10 +53,6 @@ resource "aws_security_group" "sellix-redis-us-east-1-sg" {
   )
 }
 
-locals {
-  redis_node_type = local.is_production ? "cache.r6g.large" : "cache.t4g.small"
-}
-
 /*
 module "redis-staging" {
   count = !local.is_production && local.is_redis ? 1 : 0
@@ -81,7 +77,7 @@ module "redis-eu-west-1" {
   is_production              = local.is_production
   tags                       = local.tags
   sgr_id                     = one(aws_security_group.sellix-redis-eu-west-1-sg).id
-  node_type                  = local.redis_node_type
+  node_type                  = var.redis_node_types[local.is_production]
   subnet_ids                 = local.is_production ? module.vpc-eu-west-1.subnets["private"][*] : module.vpc-eu-west-1.subnets["public"][*]
   port                       = var.redis_port
   num_cache_cluster          = local.is_production ? 2 : 1
@@ -106,7 +102,7 @@ module "redis-us-east-1" {
   is_production               = local.is_production
   tags                        = local.tags
   sgr_id                      = one(aws_security_group.sellix-redis-us-east-1-sg).id
-  node_type                   = local.redis_node_type
+  node_type                   = var.redis_node_types[local.is_production]
   subnet_ids                  = one(module.vpc-us-east-1).subnets["private"][*]
   global_replication_group_id = one(aws_elasticache_global_replication_group.sellix-eb-global-datastore).id
   port                        = var.redis_port

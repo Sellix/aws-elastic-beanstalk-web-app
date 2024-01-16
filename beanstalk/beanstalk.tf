@@ -85,7 +85,9 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
     for_each = merge(
       local.env[each.key],
       can(each.value.vars) ? each.value.vars : {},
-      can(each.value.region_vars) ? { for k, v in each.value.region_vars : k => lookup(v, local.aws_region, "") } : {}
+      can(each.value.regional_vars) ? {
+        for k, v in each.value.regional_vars : k => lookup(v, local.aws_region, "")
+      } : {}
     )
     content {
       namespace = "aws:elasticbeanstalk:application:environment"

@@ -93,3 +93,12 @@ variable "cloudflare_enabled" {
   description = "restrict incoming traffic"
   default     = false
 }
+
+variable "redis_node_types" {
+  type        = map(string)
+  description = "node types"
+  default = {
+    true : "cache.r6g.large",
+    false : "cache.t4g.small"
+  }
+}

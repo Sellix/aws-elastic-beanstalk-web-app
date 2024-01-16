@@ -620,6 +620,8 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-poli
 }
 
 data "aws_secretsmanager_secrets" "build-secrets" {
+  count = length(var.build_secrets) > 0 ? 1 : 0
+
   filter {
     name   = "name"
     values = values(var.build_secrets)
@@ -627,13 +629,15 @@ data "aws_secretsmanager_secrets" "build-secrets" {
 }
 
 data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-buildsecrets-policy-document" {
+  count = length(one(data.aws_secretsmanager_secrets.build-secrets).arns) > 0 ? 1 : 0
+
   statement {
     effect = "Allow"
     sid    = "CodeBuildRetrieveBuildSecret"
     actions = [
       "secretsmanager:GetSecretValue"
     ]
-    resources = data.aws_secretsmanager_secrets.build-secrets.arns
+    resources = one(data.aws_secretsmanager_secrets.build-secrets).arns
   }
 }
 
@@ -716,8 +720,10 @@ resource "aws_iam_policy" "sellix-eb-codepipeline-codestar-permissions-policy" {
 }
 
 resource "aws_iam_policy" "sellix-eb-codepipeline-codebuild-buildsecrets-policy" {
+  count = length(data.aws_iam_policy_document.sellix-eb-codepipeline-codebuild-buildsecrets-policy-document)
+
   name   = "${var.tags["Project"]}-${local.aws_region}-codepipeline-codebuild-buildsecrets-policy"
-  policy = data.aws_iam_policy_document.sellix-eb-codepipeline-codebuild-buildsecrets-policy-document.json
+  policy = one(data.aws_iam_policy_document.sellix-eb-codepipeline-codebuild-buildsecrets-policy-document).json
 }
 
 resource "aws_iam_policy" "sellix-eb-kms-key-policy" {
@@ -799,6 +805,8 @@ resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-kms-key-policy
 }
 
 resource "aws_iam_role_policy_attachment" "sellix-eb-codepipeline-codebuild-buildsecrets-policy-attachment" {
+  count = length(aws_iam_policy.sellix-eb-codepipeline-codebuild-buildsecrets-policy)
+
   role       = aws_iam_role.sellix-eb-codebuild-role.name
-  policy_arn = aws_iam_policy.sellix-eb-codepipeline-codebuild-buildsecrets-policy.arn
+  policy_arn = one(aws_iam_policy.sellix-eb-codepipeline-codebuild-buildsecrets-policy).arn
 }
