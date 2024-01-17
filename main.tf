@@ -43,8 +43,13 @@ provider "aws" {
 locals {
   is_production = length(regexall("production", terraform.workspace)) > 0
   environments  = { for k, v in var.environments : k => v if tobool(lookup(v, "enabled", false)) }
-  multi_region_environments = (local.is_production ?
-  { for k, v in local.environments : k => v if tobool(lookup(v, "multi_region", false)) } : {})
+  multi_region_environments = (
+    local.is_production ? {
+      for k, v in local.environments :
+      k => v
+      if tobool(lookup(v, "multi_region", false))
+    } : {}
+  )
 
   is_peering = anytrue([for k, v in local.environments : tobool(lookup(v, "peering", false))])
   is_redis   = anytrue([for k, v in local.environments : tobool(lookup(v, "redis", false))])

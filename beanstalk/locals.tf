@@ -5,8 +5,10 @@ locals {
   aws_region     = data.aws_region.current.name
   aws_account_id = data.aws_caller_identity.current.account_id
 
-  docker_environments = [for k, v in var.environments : k
-  if lower(lookup(v, "stack_name", "")) == "docker"]
+  docker_environments = [
+    for k, v in var.environments : k
+    if lower(lookup(v, "stack_name", "")) == "docker"
+  ]
 
   codebuild_envs = {
     for k, v in var.environments : k =>
@@ -297,9 +299,9 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value = join(", ", [aws_security_group.sellix-eb-security-group.id],
-        !var.is_production ?
-      [aws_security_group.sellix-eb-elb-security-group.id] : [])
+      value = join(", ",
+        [aws_security_group.sellix-eb-security-group.id],
+      !var.is_production ? [aws_security_group.sellix-eb-elb-security-group.id] : [])
     },
     {
       namespace = "aws:autoscaling:launchconfiguration"
