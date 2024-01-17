@@ -32,7 +32,7 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
     8,
     count.index
   )
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = !var.is_production
   tags = merge({
     "Name" = "${var.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
     },
