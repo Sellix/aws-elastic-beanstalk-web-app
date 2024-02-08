@@ -1,8 +1,10 @@
 resource "aws_vpc" "sellix-eb-vpc" {
-  cidr_block           = var.main_cidr_block
-  instance_tenancy     = "default"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+  cidr_block                       = var.main_cidr_block
+  instance_tenancy                 = "default"
+  enable_dns_support               = true
+  enable_dns_hostnames             = true
+  assign_generated_ipv6_cidr_block = true
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-vpc"
     },
@@ -32,7 +34,15 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
     8,
     count.index
   )
-  map_public_ip_on_launch = !var.is_production
+  ipv6_cidr_block = cidrsubnet(
+    aws_vpc.sellix-eb-vpc.ipv6_cidr_block,
+    8,
+    count.index
+  )
+  map_public_ip_on_launch         = !var.is_production
+  assign_ipv6_address_on_creation = !var.is_production
+  enable_dns64                    = false
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
     },
@@ -49,7 +59,15 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
     8,
     length(local.availability_zones) + count.index
   )
-  map_public_ip_on_launch = false
+  ipv6_cidr_block = cidrsubnet(
+    aws_vpc.sellix-eb-vpc.ipv6_cidr_block,
+    8,
+    length(local.availability_zones) + count.index
+  )
+  map_public_ip_on_launch         = false
+  assign_ipv6_address_on_creation = true
+  enable_dns64                    = false
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
     },
@@ -112,6 +130,15 @@ resource "aws_eip_association" "sellix-eb-eip-assoc" {
   allocation_id = aws_eip.sellix-eb-eip[count.index].id
 }
 
+resource "aws_egress_only_internet_gateway" "sellix-eb-eo-gw" {
+  count  = var.is_production ? 1 : 0
+  vpc_id = aws_vpc.sellix-eb-vpc.id
+
+  tags = merge({
+    "Name" = "${var.tags["Project"]}-eo-gw"
+  }, var.tags)
+}
+
 resource "aws_internet_gateway" "sellix-eb-internet-gateway" {
   vpc_id = aws_vpc.sellix-eb-vpc.id
   tags = merge({
@@ -127,6 +154,10 @@ resource "aws_route_table" "sellix-eb-public-route-table" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.sellix-eb-internet-gateway.id
   }
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.sellix-eb-internet-gateway.id
+  }
   tags = merge({
     "Name" = "${var.tags["Project"]}-public-route-table"
     },
@@ -141,6 +172,10 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
     cidr_block           = "0.0.0.0/0"
     nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) > 0 ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
     network_interface_id = length(aws_instance.fuck-nat) > 0 ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
+  }
+  route {
+    ipv6_cidr_block        = "::/0"
+    egress_only_gateway_id = one(aws_egress_only_internet_gateway.sellix-eb-eo-gw).id
   }
   /*
   dynamic "route" { // peering with backend
@@ -164,12 +199,6 @@ resource "aws_route_table" "sellix-eb-private-route-table" {
   )
 }
 
-resource "aws_route" "sellix-eb-route" {
-  route_table_id         = aws_route_table.sellix-eb-public-route-table.id
-  gateway_id             = aws_internet_gateway.sellix-eb-internet-gateway.id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
 resource "aws_route_table_association" "sellix-eb-public-route-table-association" {
   count          = var.is_production ? length(local.availability_zones) : 1
   subnet_id      = element(aws_subnet.sellix-eb-public-subnet[*].id, count.index)
@@ -179,5 +208,5 @@ resource "aws_route_table_association" "sellix-eb-public-route-table-association
 resource "aws_route_table_association" "sellix-eb-private-route-table-association" {
   count          = var.is_production ? length(local.availability_zones) : 0
   subnet_id      = element(aws_subnet.sellix-eb-private-subnet[*].id, count.index)
-  route_table_id = var.is_production ? element(aws_route_table.sellix-eb-private-route-table[*].id, count.index) : aws_route_table.sellix-eb-private-route-table[0].id
+  route_table_id = element(aws_route_table.sellix-eb-private-route-table[*].id, count.index)
 }

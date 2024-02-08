@@ -75,7 +75,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   setting {
     namespace = "aws:ec2:instances"
     name      = "InstanceTypes"
-    value = join(",", can(each.value.instances) && length(each.value.instances) > 0 ?
+    value = join(",", can(each.value.instances[0]) ?
       each.value.instances :
     var.default_instances[var.is_production])
   }

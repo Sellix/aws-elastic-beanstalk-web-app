@@ -344,6 +344,21 @@ data "aws_iam_policy_document" "sellix-eb-default-policy-document" {
     resources = [for _, v in aws_ecr_repository.sellix-ecr : v.arn]
   }
 
+  statement {
+    sid = ""
+    actions = [
+      "ec2:AssignIpv6Addresses"
+    ]
+    effect    = "Allow"
+    resources = ["arn:aws:ec2:${local.aws_region}:${local.aws_account_id}:network-interface/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:Vpc"
+      values   = ["arn:aws:ec2:${local.aws_region}:${local.aws_account_id}:vpc/${var.vpc_id}"]
+    }
+  }
+
   /*
   statement {
     sid = "S3BucketPerms"
