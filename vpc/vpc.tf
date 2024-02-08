@@ -39,9 +39,10 @@ resource "aws_subnet" "sellix-eb-public-subnet" {
     8,
     count.index
   )
-  map_public_ip_on_launch         = !var.is_production
-  assign_ipv6_address_on_creation = !var.is_production
-  enable_dns64                    = false
+  map_public_ip_on_launch             = !var.is_production
+  assign_ipv6_address_on_creation     = !var.is_production
+  enable_dns64                        = false
+  private_dns_hostname_type_on_launch = "resource-name"
 
   tags = merge({
     "Name" = "${var.tags["Project"]}-public-subnet-${element(local.availability_zones, count.index)}"
@@ -64,9 +65,10 @@ resource "aws_subnet" "sellix-eb-private-subnet" {
     8,
     length(local.availability_zones) + count.index
   )
-  map_public_ip_on_launch         = false
-  assign_ipv6_address_on_creation = true
-  enable_dns64                    = false
+  map_public_ip_on_launch             = false
+  assign_ipv6_address_on_creation     = true
+  enable_dns64                        = false
+  private_dns_hostname_type_on_launch = "resource-name"
 
   tags = merge({
     "Name" = "${var.tags["Project"]}-private-subnet-${element(local.availability_zones, count.index)}"
