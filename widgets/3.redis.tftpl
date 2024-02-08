@@ -1,0 +1,46 @@
+[%{ for idx, region in keys(redis) ~}
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(redis))) / pow(2, 1) )},
+    "y": ${height*(7+(ceil((length(albs)+length(redis)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(redis)))*(idx+(0/pow(2,1))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "metrics": [
+            %{ for idx, cache in redis[region] }
+            [ "AWS/ElastiCache", "NetworkBytesIn", "CacheClusterId", "${cache}", { "region": "${region}" } ],
+            [ "AWS/ElastiCache", "NetworkBytesOut", "CacheClusterId", "${cache}", { "region": "${region}" } ]%{ if idx < length(redis[region])-1 ~},%{ endif }
+            %{endfor ~}
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Elasticache ${upper(split("-", region)[0])} Network Throughput",
+        "period": 300,
+        "stat": "Average"
+    }
+},
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(redis))) / pow(2, 1) )},
+    "y": ${height*(7+(ceil((length(albs)+length(redis)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(redis)))*(idx+(1/pow(2,1))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "metrics": [
+            %{ for idx, cache in redis[region] }
+            %{ if length(redis[region]) > 0 }
+            [ "AWS/ElastiCache", "ReplicationLag", "CacheClusterId", "${cache}", { "region": "${region}" } ],
+            %{ endif }
+            [ "AWS/ElastiCache", "StringBasedCmdsLatency", "CacheClusterId", "${cache}", { "region": "${region}" } ]%{ if idx < length(redis[region])-1 ~},%{ endif }
+            %{endfor ~}
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Elasticache ${upper(split("-", region)[0])} Network Latencies",
+        "period": 300,
+        "stat": "Average"
+    }
+}%{ if idx < length(redis)-1 ~},%{ endif }
+%{ endfor ~}]

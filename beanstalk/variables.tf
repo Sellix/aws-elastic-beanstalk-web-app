@@ -85,3 +85,34 @@ variable "ssl_listener" {
   description = "Application Listens SSL"
   default     = true
 }
+
+// https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
+variable "default_codebuild_image" {
+  type        = string
+  description = "Default Codebuild, AWS Curated Docker Image"
+  default     = "aws/codebuild/amazonlinux2-aarch64-standard:3.0"
+}
+
+variable "ecr_enabled" {
+  type        = bool
+  description = "Create ECR Repository"
+  default     = true
+}
+
+variable "cloudflare_enabled" {
+  type        = bool
+  description = "restrict incoming traffic"
+  default     = false
+}
+
+variable "default_instances" {
+  type        = map(list(string))
+  description = "Default Beanstalk Instance Types"
+  default     = { true : ["m7g.large"], false : ["t4g.small"] }
+}
+
+variable "build_secrets" {
+  type        = map(string)
+  description = "`codebuild environment` -> secret_name; useful for in-build dynamic variables"
+  default     = {}
+}
