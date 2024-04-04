@@ -18,7 +18,6 @@ locals {
 
   env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
-    DOMAIN                 = "${vals.domain}.${var.is_production ? "io" : "gg"}"
     ENVIRONMENT            = var.is_production ? "production" : "staging"
     NODE_ENV               = "prod"
     },
@@ -37,9 +36,22 @@ locals {
   ssl_arn = lookup(var.ssl_arn[local.aws_region], tostring(var.is_production), "")
   is_ssl  = length(local.ssl_arn) > 0
 
-  eb_processes = var.ssl_listener ? {
-    "https" : { "valid" : tostring(var.ssl_listener), "protocol" : "https", "port" : "443" }
-  } : { "default" : { "valid" : "true", "protocol" : "http", "port" : "80" } }
+  // todo: split listeners and processes
+  eb_processes = merge(local.is_ssl ?
+    {
+      "https" : {
+        "protocol" : var.ssl_listener ? "https" : "http",
+        "port" : "443",
+        "is_ssl": true,
+      }
+    } : {},
+    {
+      "default" : {
+        "protocol" : "http",
+        "port" : "80",
+        "is_ssl": false,
+      }
+  })
 
 
   /*  notification_topic_arn = { for s in aws_elastic_beanstalk_environment.sellix-eb-environment.all_settings :
@@ -80,7 +92,7 @@ locals {
       value     = "application"
     },
     ],
-    flatten([for process, options in local.eb_processes : tobool(options.valid) ? [{
+    flatten([for process, options in local.eb_processes : [{
       namespace = "aws:elasticbeanstalk:environment:process:${process}"
       name      = "DeregistrationDelay"
       value     = "20"
@@ -114,7 +126,7 @@ locals {
         namespace = "aws:elasticbeanstalk:environment:process:${process}"
         name      = "StickinessType"
         value     = "lb_cookie"
-    }] : []])
+    }]])
     ) : [
     {
       namespace = "aws:elasticbeanstalk:environment"
@@ -177,7 +189,7 @@ locals {
       value     = "false"
     },
     ],
-    flatten([for process, options in local.eb_processes : tobool(options.valid) && var.is_production ? [
+    flatten([for process, options in local.eb_processes : var.is_production ? [
       {
         namespace = "aws:elasticbeanstalk:environment:process:${process}"
         name      = "HealthCheckInterval"
@@ -242,7 +254,43 @@ locals {
       value     = join(",", sort(var.vpc_subnets["public"][*]))
     }
   ]
-  alb = var.is_production ? [
+
+  alb_listeners = flatten([
+    for process, options in local.eb_processes :
+    concat(
+      [
+        {
+          namespace = "aws:elbv2:listener:${options.port}"
+          name      = "DefaultProcess"
+          value     = process
+        },
+        {
+          namespace = "aws:elbv2:listener:${options.port}"
+          name      = "ListenerEnabled"
+          value     = true
+        },
+        {
+          namespace = "aws:elbv2:listener:${options.port}"
+          name      = "Protocol"
+          value     = upper(options.protocol)
+        },
+      ],
+      options.protocol == "https" || options.is_ssl ? [
+        {
+          namespace = "aws:elbv2:listener:${options.port}"
+          name      = "SSLCertificateArns"
+          value     = local.ssl_arn
+        },
+        {
+          namespace = "aws:elbv2:listener:${options.port}"
+          name      = "SSLPolicy"
+          # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html
+          value = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+        }
+      ] : []
+  )])
+
+  alb = var.is_production ? concat([
     {
       namespace = "aws:elbv2:loadbalancer"
       name      = "ManagedSecurityGroup" // SecurityGroups
@@ -254,27 +302,6 @@ locals {
       value     = aws_security_group.sellix-eb-elb-security-group.id
     },
     {
-      namespace = "aws:elbv2:listener:443"
-      name      = "ListenerEnabled"
-      value     = tostring(local.is_ssl)
-    },
-    {
-      namespace = "aws:elbv2:listener:443"
-      name      = "Protocol"
-      value     = "HTTPS"
-    },
-    {
-      namespace = "aws:elbv2:listener:443"
-      name      = "SSLCertificateArns"
-      value     = local.ssl_arn
-    },
-    {
-      namespace = "aws:elbv2:listener:443"
-      name      = "SSLPolicy"
-      # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html
-      value = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-    },
-    {
       namespace = "aws:elbv2:loadbalancer"
       name      = "AccessLogsS3Bucket"
       value     = aws_s3_bucket.sellix-eb-elb-logs.id
@@ -284,7 +311,7 @@ locals {
       name      = "AccessLogsS3Enabled"
       value     = "true"
     }
-  ] : []
+  ], local.alb_listeners) : []
   autoscaling_launch_config = [
     {
       namespace = "aws:autoscaling:launchconfiguration"

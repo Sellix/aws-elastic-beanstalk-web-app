@@ -2,7 +2,8 @@ data "aws_elastic_beanstalk_solution_stack" "stack" {
   for_each    = var.environments
   most_recent = true
 
-  name_regex = trimspace("^64bit Amazon Linux (.*) running ${each.value.stack_name}$ ${lookup(each.value.versions, each.value.stack_name, "")}")
+  # https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platforms-supported.html#platforms-supported.docker
+  name_regex = trimspace("^64bit Amazon Linux ${tostring(var.al_version)} v(.*) running ${each.value.stack_name}$ ${lookup(each.value.versions, each.value.stack_name, "")}")
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
@@ -142,6 +143,6 @@ resource "aws_elastic_beanstalk_application" "sellix-eb" {
   tags = var.tags
 
   lifecycle {
-    ignore_changes = [tags]
+    ignore_changes = [tags, appversion_lifecycle]
   }
 }

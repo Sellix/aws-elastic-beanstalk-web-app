@@ -116,3 +116,9 @@ variable "build_secrets" {
   description = "`codebuild environment` -> secret_name; useful for in-build dynamic variables"
   default     = {}
 }
+
+variable "al_version" {
+  type = number
+  description = "Amazon Linux Version"
+  default = 2023
+}
