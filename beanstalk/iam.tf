@@ -634,17 +634,8 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codestar-permissions-poli
   }
 }
 
-data "aws_secretsmanager_secrets" "build-secrets" {
-  count = length(var.build_secrets) > 0 ? 1 : 0
-
-  filter {
-    name   = "name"
-    values = values(var.build_secrets)
-  }
-}
-
 data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-buildsecrets-policy-document" {
-  count = length(one(data.aws_secretsmanager_secrets.build-secrets).arns) > 0 ? 1 : 0
+  count = length(var.build_secrets) > 0 ? 1 : 0
 
   statement {
     effect = "Allow"
@@ -652,7 +643,7 @@ data "aws_iam_policy_document" "sellix-eb-codepipeline-codebuild-buildsecrets-po
     actions = [
       "secretsmanager:GetSecretValue"
     ]
-    resources = one(data.aws_secretsmanager_secrets.build-secrets).arns
+    resources = [for _, v in var.build_secrets : v.arn]
   }
 }
 

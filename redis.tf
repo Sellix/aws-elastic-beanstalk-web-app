@@ -10,7 +10,7 @@ resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
     from_port   = var.redis_port
     to_port     = var.redis_port
     protocol    = "tcp"
-    cidr_blocks = concat([local.eu_main_cidr], local.is_production ? [local.us_main_cidr] : [])
+    cidr_blocks = concat([local.eu_main_cidr], local.is_production ? [local.us_main_cidr] : []) // TODO: replace with instance sg's id
   }
   egress {
     description = "consent Redis updates"

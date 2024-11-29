@@ -102,3 +102,15 @@ variable "redis_node_types" {
     false : "cache.t4g.small"
   }
 }
+
+variable "cloudwatch_logs_days" {
+  type = object({
+    instance = optional(number),
+    healthd = optional(number) 
+  })
+  description = "maximum number of days to retain CloudWatch logs"
+  default = {
+    "instance": 90,
+    "healthd": 7,
+  }
+}

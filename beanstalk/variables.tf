@@ -118,7 +118,19 @@ variable "build_secrets" {
 }
 
 variable "al_version" {
-  type = number
+  type        = number
   description = "Amazon Linux Version"
-  default = 2023
+  default     = 2023
+}
+
+variable "cloudwatch_logs_days" {
+  type = object({
+    instance = optional(number),
+    healthd  = optional(number)
+  })
+  description = "maximum number of days to retain CloudWatch logs"
+  default = {
+    "instance" : 90,
+    "healthd" : 7,
+  }
 }

@@ -24,9 +24,10 @@ resource "aws_secretsmanager_secret" "build-secrets" {
 }
 
 locals {
-  build_secrets = { for k, v in aws_secretsmanager_secret.build-secrets : k => v.name }
-  multi_region_build_secrets = {
-    for k, v in local.build_secrets : k => v
-    if can(local.multi_region_environments[k])
-  }
+  build_secrets = { for k, v in aws_secretsmanager_secret.build-secrets : k => { name: v.name, arn: v.arn } }
+  
+  #multi_region_build_secrets = {
+  #  for k, v in local.build_secrets : k => v
+  #  if can(local.multi_region_environments[k])
+  #}
 }

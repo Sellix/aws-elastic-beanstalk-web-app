@@ -19,7 +19,7 @@ locals {
   env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
     ENVIRONMENT            = var.is_production ? "production" : "staging"
-    NODE_ENV               = "prod"
+    NODE_ENV               = var.is_production ? "prod" : "staging"
     },
     contains(local.docker_environments, env_name) ? {
       AWS_REGION     = local.aws_region
@@ -42,14 +42,14 @@ locals {
       "https" : {
         "protocol" : var.ssl_listener ? "https" : "http",
         "port" : "443",
-        "is_ssl": true,
+        "is_ssl" : true,
       }
     } : {},
     {
       "default" : {
         "protocol" : "http",
         "port" : "80",
-        "is_ssl": false,
+        "is_ssl" : false,
       }
   })
 
@@ -75,7 +75,7 @@ locals {
     {
       namespace = "aws:ec2:vpc"
       name      = "AssociatePublicIpAddress"
-      value     = var.is_production ? tostring(false) : tostring(true)
+      value     = tostring(!var.is_production)
     }
     ]
   }
@@ -141,38 +141,43 @@ locals {
     }
   ])
 
-  cloudwatch = [
-    {
-      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-      name      = "DeleteOnTerminate"
-      value     = "false"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
-      name      = "RetentionInDays"
-      value     = "90"
-    },
+  cloudwatch = concat([
     {
       namespace = "aws:elasticbeanstalk:cloudwatch:logs"
       name      = "StreamLogs"
-      value     = "true"
-    },
-    {
-      namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
-      name      = "DeleteOnTerminate"
-      value     = "false"
+      value     = tostring(var.cloudwatch_logs_days["instance"] != null)
     },
     {
       namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
       name      = "HealthStreamingEnabled"
-      value     = "false"
+      value     = tostring(var.cloudwatch_logs_days["healthd"] != null)
+    },
+    ], var.cloudwatch_logs_days["instance"] != null ? [
+    {
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+      name      = "RetentionInDays"
+      value     = var.cloudwatch_logs_days["instance"]
     },
     {
-      namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
-      name      = "RetentionInDays"
-      value     = "7"
+      namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+      name      = "DeleteOnTerminate"
+      value     = "false"
     },
-  ]
+    ] : [],
+    var.cloudwatch_logs_days["healthd"] != null ? [
+      {
+        namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+        name      = "RetentionInDays"
+        value     = var.cloudwatch_logs_days["healthd"]
+      },
+      {
+        namespace = "aws:elasticbeanstalk:cloudwatch:logs:health"
+        name      = "DeleteOnTerminate"
+        value     = "false"
+      },
+    ] : []
+  )
+
   per_app_healthcheck = {
     for k, v in var.environments : k => [
       {
@@ -247,13 +252,15 @@ locals {
       value     = var.is_production ? "Immutable" : "AllAtOnce"
     }
   ]
-  generic_elb = [
+
+  generic_elb = { for k, v in var.environments : k => [
     {
       namespace = "aws:ec2:vpc"
       name      = "ELBSubnets"
-      value     = join(",", sort(var.vpc_subnets["public"][*]))
+      value     = var.is_production && tobool(lookup(v, "global_accelerator", false)) ? join(",", sort(var.vpc_subnets["private"][*])) : join(",", sort(var.vpc_subnets["public"][*]))
     }
-  ]
+    ]
+  }
 
   alb_listeners = flatten([
     for process, options in local.eb_processes :

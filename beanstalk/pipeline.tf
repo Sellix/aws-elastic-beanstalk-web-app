@@ -63,6 +63,10 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
     },
     var.tags
   )
+
+  lifecycle {
+    ignore_changes = [stage]
+  }
 }
 
 // https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html

@@ -154,6 +154,7 @@ module "eb-eu-west-1" {
   ssl_listener            = var.ssl_listener
   cloudflare_enabled      = var.cloudflare_enabled
   build_secrets           = local.build_secrets
+  cloudwatch_logs_days = var.cloudwatch_logs_days
 }
 
 // redis
@@ -197,6 +198,7 @@ module "eb-us-east-1" {
   ssl_listener            = var.ssl_listener
   cloudflare_enabled      = var.cloudflare_enabled
   build_secrets           = local.build_secrets
+  cloudwatch_logs_days = var.cloudwatch_logs_days
 }
 
 output "eu-west-1_eb-cname" {
