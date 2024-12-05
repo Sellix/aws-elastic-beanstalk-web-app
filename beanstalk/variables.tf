@@ -134,3 +134,15 @@ variable "cloudwatch_logs_days" {
     "healthd" : 7,
   }
 }
+
+variable "slack_channel_names" {
+  type = object({
+    codepipeline = string,
+    beanstalk    = string
+  })
+  nullable = true
+  default = {
+    "codepipeline" : null,
+    "beanstalk" : null
+  }
+}

@@ -108,8 +108,11 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
       local.command,
       local.traffic_splitting,
       local.generic_elb[each.key],
+      local.alb_logs[each.key],
       local.alb,
       local.autoscaling_launch_config,
+      local.autoscaling_triggers[each.key],
+      local.autoscaling_vars[each.key],
       local.autoscaling
     )
     content {
