@@ -409,14 +409,16 @@ data "aws_iam_policy_document" "sellix-eb-ec2-policy-document" {
 }
 
 data "aws_iam_policy_document" "sellix-eb-elb-policy-document" {
+  count = var.is_production ? 1 : 0
+
   statement {
     sid = "ELBS3WriteLogs"
     actions = [
       "s3:PutObject",
     ]
     resources = [
-      aws_s3_bucket.sellix-eb-elb-logs.arn,
-      "${aws_s3_bucket.sellix-eb-elb-logs.arn}/*"
+      one(aws_s3_bucket.sellix-eb-elb-logs).arn,
+      "${one(aws_s3_bucket.sellix-eb-elb-logs).arn}/*"
     ]
     principals {
       type        = "AWS"
@@ -483,14 +485,10 @@ data "aws_iam_policy_document" "sellix-eb-service-sns-policy-document" {
     actions = [
       "sns:Publish"
     ]
-    resources = concat(
-      [
-        data.terraform_remote_state.sellix-eb-chatbot-terraform-state.outputs["${local.aws_region}_chatbot-arn"]
-      ],
-      [
-        for _, env_name in keys(var.environments) :
-        "arn:aws:sns:${local.aws_region}:*:ElasticBeanstalkNotifications-Environment-${var.tags["Project"]}-${env_name}*"
-    ])
+    resources = [
+      for _, env_name in keys(var.environments) :
+      "arn:aws:sns:${local.aws_region}:*:ElasticBeanstalkNotifications-Environment-${var.tags["Project"]}-${env_name}"
+    ]
     effect = "Allow"
   }
 }
