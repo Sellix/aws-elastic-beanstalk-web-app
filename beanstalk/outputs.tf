@@ -11,3 +11,13 @@ output "eb_load_balancers" {
     env_name => v.load_balancers
   }
 }
+
+output "ecr" {
+  value = { for env_name, v in aws_ecr_repository.sellix-ecr :
+  env_name => v.repository_url }
+}
+
+output "autoscaling" {
+  value = { for env_name, v in aws_elastic_beanstalk_environment.sellix-eb-environment :
+  env_name => tolist(v.autoscaling_groups) }
+}

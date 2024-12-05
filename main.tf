@@ -3,6 +3,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
       version = "~> 4.0"
     }
   }
@@ -14,6 +18,10 @@ terraform {
     dynamodb_table = "sellix-deployments"
     key            = "eb-web-app.tfstate"
   }
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare-api-token
 }
 
 provider "aws" {
@@ -35,9 +43,20 @@ provider "aws" {
 locals {
   is_production = length(regexall("production", terraform.workspace)) > 0
   environments  = { for k, v in var.environments : k => v if tobool(lookup(v, "enabled", false)) }
-  is_redis      = anytrue([for k, v in local.environments : tobool(lookup(v, "redis", false))])
-  eu_main_cidr  = cidrsubnet(var.main_cidr_block, 8, ((local.is_production ? 0 : 2) + length(terraform.workspace)) % 256)
-  us_main_cidr  = cidrsubnet(var.main_cidr_block, 8, (1 + length(terraform.workspace)) % 256)
+  multi_region_environments = (
+    local.is_production ? {
+      for k, v in local.environments :
+      k => v
+      if tobool(lookup(v, "multi_region", false))
+    } : {}
+  )
+
+  is_peering = anytrue([for k, v in local.environments : tobool(lookup(v, "peering", false))])
+  is_redis   = anytrue([for k, v in local.environments : tobool(lookup(v, "redis", false))])
+
+  eu_main_cidr = var.subnets[0]
+  us_main_cidr = local.is_production && can(var.subnets[1]) ? var.subnets[1] : ""
+
   tags = {
     "Project"     = "sellix-eb-${terraform.workspace}"
     "Environment" = terraform.workspace
@@ -64,7 +83,7 @@ module "vpc-eu-west-1" {
 }
 
 module "vpc-us-east-1" {
-  count  = local.is_production ? 1 : 0
+  count  = (length(local.multi_region_environments) > 0) && local.is_production ? 1 : 0
   source = "./vpc"
   providers = {
     aws = aws.us-east-1
@@ -76,7 +95,7 @@ module "vpc-us-east-1" {
 }
 
 module "eb-to-legacy_alb-eu-peering" {
-  count  = local.is_production ? 1 : 0
+  count  = local.is_peering && local.is_production ? 1 : 0
   source = "./peering"
   providers = {
     aws.first  = aws.eu-west-1,
@@ -92,7 +111,7 @@ module "eb-to-legacy_alb-eu-peering" {
 }
 
 module "eb-to-legacy_alb-us-peering" {
-  count  = local.is_production ? 1 : 0
+  count  = (length(local.multi_region_environments) > 0) && local.is_peering && local.is_production ? 1 : 0
   source = "./peering"
   providers = {
     aws.first  = aws.eu-west-1,
@@ -110,14 +129,21 @@ module "eb-to-legacy_alb-us-peering" {
 module "eb-eu-west-1" {
   source = "./beanstalk"
   providers = {
-    aws = aws.eu-west-1
+    aws        = aws.eu-west-1
+    cloudflare = cloudflare
   }
-  tags                    = local.tags
-  main_cidr_block         = local.eu_main_cidr
-  vpc_id                  = module.vpc-eu-west-1.vpc_id
-  vpc_subnets             = module.vpc-eu-west-1.subnets
-  redis_endpoint          = local.is_redis ? one(module.redis-eu-west-1).writer : ""
-  redis_read_endpoint     = local.is_redis ? one(module.redis-eu-west-1).reader : ""
+  tags            = local.tags
+  main_cidr_block = local.eu_main_cidr
+  vpc_id          = module.vpc-eu-west-1.vpc_id
+  vpc_subnets     = module.vpc-eu-west-1.subnets
+  redis_endpoint = (local.is_redis ?   //(local.is_production ?
+    one(module.redis-eu-west-1).writer //:
+    //one(module.redis-staging).NLB-endpoint)
+  : "")
+  redis_read_endpoint = (local.is_redis ? //(local.is_production ?
+    one(module.redis-eu-west-1).reader    //:
+    //one(module.redis-staging).NLB-endpoint)
+  : "")
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
   environments            = local.environments
@@ -126,11 +152,15 @@ module "eb-eu-west-1" {
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
+  cloudflare_enabled      = var.cloudflare_enabled
+  build_secrets           = local.build_secrets
+  cloudwatch_logs_days = var.cloudwatch_logs_days
 }
 
 // redis
 module "eu-us-cross-region-vpc-peering" {
-  count  = (local.is_production && local.is_redis) ? 1 : 0
+  count = ((length(local.multi_region_environments) > 0)
+  && local.is_production && local.is_redis) ? 1 : 0
   source = "./peering"
   providers = {
     aws.first  = aws.eu-west-1
@@ -146,10 +176,11 @@ module "eu-us-cross-region-vpc-peering" {
 }
 
 module "eb-us-east-1" {
-  count  = local.is_production ? 1 : 0
+  count  = (length(local.multi_region_environments) > 0) && local.is_production ? 1 : 0
   source = "./beanstalk"
   providers = {
-    aws = aws.us-east-1
+    aws        = aws.us-east-1
+    cloudflare = cloudflare
   }
   main_cidr_block         = local.us_main_cidr
   vpc_id                  = one(module.vpc-us-east-1).vpc_id
@@ -159,12 +190,15 @@ module "eb-us-east-1" {
   redis_read_endpoint     = local.is_redis ? one(module.redis-us-east-1).reader : ""
   aws_access_key          = var.aws_access_key
   aws_secret_key          = var.aws_secret_key
-  environments            = local.environments
+  environments            = local.multi_region_environments
   ssl_arn                 = var.ssl_arn
   codestar_connection_arn = var.codestar_connection_arn
   canary_deployments      = var.canary_deployments
   is_production           = local.is_production
   ssl_listener            = var.ssl_listener
+  cloudflare_enabled      = var.cloudflare_enabled
+  build_secrets           = local.build_secrets
+  cloudwatch_logs_days = var.cloudwatch_logs_days
 }
 
 output "eu-west-1_eb-cname" {
@@ -180,4 +214,12 @@ output "global_accelerator-cname" {
     for env_name, v in aws_globalaccelerator_accelerator.production-ga :
     env_name => v.dns_name
   }
+}
+
+output "eu-west-1_ecr" {
+  value = module.eb-eu-west-1.ecr
+}
+
+output "us-east-1_ecr" {
+  value = module.eb-us-east-1[*].ecr
 }

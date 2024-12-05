@@ -1,5 +1,6 @@
 resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
-  count       = local.is_redis ? 1 : 0
+  count = local.is_redis ? 1 : 0
+  // (local.is_production && ... )
   provider    = aws.eu-west-1
   name        = "Redis eu-west-1 Security Group"
   description = "Redis Traffic SG"
@@ -9,7 +10,7 @@ resource "aws_security_group" "sellix-redis-eu-west-1-sg" {
     from_port   = var.redis_port
     to_port     = var.redis_port
     protocol    = "tcp"
-    cidr_blocks = [local.eu_main_cidr]
+    cidr_blocks = concat([local.eu_main_cidr], local.is_production ? [local.us_main_cidr] : []) // TODO: replace with instance sg's id
   }
   egress {
     description = "consent Redis updates"
@@ -52,8 +53,22 @@ resource "aws_security_group" "sellix-redis-us-east-1-sg" {
   )
 }
 
+/*
+module "redis-staging" {
+  count = !local.is_production && local.is_redis ? 1 : 0
+  source = "git@github.com:Sellix/keydb-aws-tf.git"
+
+  vpc_id = module.vpc-eu-west-1.vpc_id
+  subnets = module.vpc-eu-west-1.subnets["public"]
+  instance_type = "t4g.nano"
+  replicas-per-az = 1
+  tags = local.tags
+}
+*/
+
 module "redis-eu-west-1" {
-  count  = local.is_redis ? 1 : 0
+  count = local.is_redis ? 1 : 0
+  // (local.is_production && ... )
   source = "./redis-regions"
   providers = {
     aws = aws.eu-west-1
@@ -62,7 +77,7 @@ module "redis-eu-west-1" {
   is_production              = local.is_production
   tags                       = local.tags
   sgr_id                     = one(aws_security_group.sellix-redis-eu-west-1-sg).id
-  node_type                  = local.is_production ? "cache.t3.medium" : "cache.t4g.small"
+  node_type                  = var.redis_node_types[local.is_production]
   subnet_ids                 = local.is_production ? module.vpc-eu-west-1.subnets["private"][*] : module.vpc-eu-west-1.subnets["public"][*]
   port                       = var.redis_port
   num_cache_cluster          = local.is_production ? 2 : 1
@@ -78,7 +93,7 @@ resource "aws_elasticache_global_replication_group" "sellix-eb-global-datastore"
 }
 
 module "redis-us-east-1" {
-  count  = (local.is_production && local.is_redis) ? 1 : 0
+  count  = (length(local.multi_region_environments) > 0 && local.is_redis) ? 1 : 0
   source = "./redis-regions"
   providers = {
     aws = aws.us-east-1
@@ -87,7 +102,7 @@ module "redis-us-east-1" {
   is_production               = local.is_production
   tags                        = local.tags
   sgr_id                      = one(aws_security_group.sellix-redis-us-east-1-sg).id
-  node_type                   = "cache.t3.medium"
+  node_type                   = var.redis_node_types[local.is_production]
   subnet_ids                  = one(module.vpc-us-east-1).subnets["private"][*]
   global_replication_group_id = one(aws_elasticache_global_replication_group.sellix-eb-global-datastore).id
   port                        = var.redis_port

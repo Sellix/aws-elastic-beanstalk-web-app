@@ -1,4 +1,5 @@
+.env
 plan.save
 terraform.*
 .terraform*
-terraform.tfvars.json
+terraform.tfvars.*

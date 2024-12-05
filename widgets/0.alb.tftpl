@@ -1,0 +1,23 @@
+[%{ for idx, region in keys(albs) ~}
+{
+    "height": ${height},
+    "width": ${floor( (cw_max_panel_width/min(max_regions_per_x, length(albs))) / pow(2, 0) )},
+    "y": ${height*(0+(ceil((length(albs)+1)/max_regions_per_x)*floor(idx/max_regions_per_x)))},
+    "x": ${min(floor(cw_max_panel_width/min(max_regions_per_x, length(albs)))*(idx+(0/pow(2,0))), cw_max_panel_width)},
+    "type": "metric",
+    "properties": {
+        "metrics": [
+            [ "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", "${albs[region]}", { "color": "#d62728" } ],
+            [ ".", "HTTPCode_Target_2XX_Count", ".", ".", { "color": "#2ca02c" } ],
+            [ ".", "HTTPCode_Target_3XX_Count", ".", ".", { "color": "#1f77b4" } ],
+            [ ".", "HTTPCode_Target_4XX_Count", ".", ".", { "color": "#ff7f0e" } ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "${upper(split("-", region)[0])} Status Codes",
+        "period": 300,
+        "stat": "Sum"
+    }
+}%{ if idx < length(albs)-1 ~},%{ endif }
+%{ endfor ~}]

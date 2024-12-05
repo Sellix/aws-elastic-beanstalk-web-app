@@ -21,8 +21,8 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       output_artifacts = ["sellix-eb-artifacts"]
       configuration = {
         ConnectionArn        = var.codestar_connection_arn
-        FullRepositoryId     = each.value["github"]["repo"]
-        BranchName           = each.value["github"]["branch"]
+        FullRepositoryId     = can(each.value["github"]["repo"]) ? each.value["github"]["repo"] : ""
+        BranchName           = can(each.value["github"]["branch"]) ? each.value["github"]["branch"] : ""
         DetectChanges        = !var.is_production
         OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
@@ -39,7 +39,7 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
       input_artifacts  = ["sellix-eb-artifacts"]
       output_artifacts = ["sellix-eb-codebuild-artifacts"]
       configuration = {
-        ProjectName = aws_codebuild_project.sellix-eb[each.value["versions"]["codebuild"]].name
+        ProjectName = aws_codebuild_project.sellix-eb[each.key].name
       }
     }
   }
@@ -63,31 +63,75 @@ resource "aws_codepipeline" "sellix-eb-codepipeline" {
     },
     var.tags
   )
+
+  lifecycle {
+    ignore_changes = [stage]
+  }
 }
 
+// https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
 resource "aws_codebuild_project" "sellix-eb" {
-  for_each       = toset(local.codebuild_envs)
-  name           = "${var.tags["Project"]}-codebuild-${each.key}"
+  for_each       = local.codebuild_envs
+  name           = "${var.tags["Project"]}-${each.key}-codebuild"
   description    = "CodeBuild"
   service_role   = aws_iam_role.sellix-eb-codebuild-role.arn
   encryption_key = aws_kms_key.sellix-eb-kms-key.arn
+
   artifacts {
     type = "CODEPIPELINE"
   }
+
   cache {
-    modes = ["LOCAL_SOURCE_CACHE"]
+    modes = [contains(local.docker_environments, each.key) ? "LOCAL_DOCKER_LAYER_CACHE" : "LOCAL_SOURCE_CACHE"]
     type  = "LOCAL"
   }
+
   environment {
-    type                        = "LINUX_CONTAINER"
+    type                        = (length(regexall("arm|aarch", each.value)) > 0 ? "ARM_CONTAINER" : "LINUX_CONTAINER")
     compute_type                = "BUILD_GENERAL1_LARGE"
-    image                       = "aws/codebuild/standard:${each.key}.0"
+    image                       = each.value
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = false
+    privileged_mode             = contains(local.docker_environments, each.key)
+
+    dynamic "environment_variable" {
+      for_each = concat(
+        contains(local.docker_environments, each.key) ? [
+          {
+            name  = "AWS_REGION"
+            value = local.aws_region
+          },
+          {
+            name  = "AWS_ACCOUNT_ID"
+            value = local.aws_account_id
+          },
+          {
+            name = "IMAGE_REPO_NAME"
+            value = reverse(split("/",
+              (contains(keys(aws_ecr_repository.sellix-ecr), each.key) ?
+              aws_ecr_repository.sellix-ecr[each.key].repository_url : "")
+            ))[0]
+          },
+        ] : [],
+        can(var.build_secrets[each.key]) ? [
+          {
+            name  = "BUILD_SECRET_ID"
+            value = var.build_secrets[each.key]
+          }
+        ] : [],
+        [for k, v in lookup(var.environments[each.key], "codebuild_vars", {}) :
+        { name = k, value = v }]
+      )
+      content {
+        name  = environment_variable.value.name
+        value = environment_variable.value.value
+      }
+    }
   }
+
   source {
     type = "CODEPIPELINE"
   }
+
   tags = merge({
     "Name" = "${var.tags["Project"]}-codebuild-project"
     },

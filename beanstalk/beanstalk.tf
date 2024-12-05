@@ -1,8 +1,9 @@
-data "aws_elastic_beanstalk_solution_stack" "nodejs" {
+data "aws_elastic_beanstalk_solution_stack" "stack" {
   for_each    = var.environments
   most_recent = true
 
-  name_regex = "^64bit Amazon Linux (.*) running Node.js ${each.value["versions"]["nodejs"]}$"
+  # https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platforms-supported.html#platforms-supported.docker
+  name_regex = trimspace("^64bit Amazon Linux ${tostring(var.al_version)} v(.*) running ${each.value.stack_name}$ ${lookup(each.value.versions, each.value.stack_name, "")}")
 }
 
 resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
@@ -11,7 +12,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   application            = aws_elastic_beanstalk_application.sellix-eb.name
   tier                   = "WebServer"
   wait_for_ready_timeout = "20m"
-  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.nodejs[each.key].name
+  solution_stack_name    = data.aws_elastic_beanstalk_solution_stack.stack[each.key].name
   setting {
     namespace = "aws:elasticbeanstalk:monitoring"
     name      = "Automatically Terminate Unhealthy Instances"
@@ -73,20 +74,22 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
     resource  = ""
   }
   setting {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "HealthCheckPath"
-    value     = each.value["healthcheck"]
-    resource  = ""
-  }
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "InstanceType"
-    value     = var.is_production ? "m6g.large" : "m6g.medium"
+    namespace = "aws:ec2:instances"
+    name      = "InstanceTypes"
+    value = join(",", can(each.value.instances[0]) ?
+      each.value.instances :
+    var.default_instances[var.is_production])
   }
 
   # environment
   dynamic "setting" {
-    for_each = merge(local.env[each.key], each.value["vars"])
+    for_each = merge(
+      local.env[each.key],
+      can(each.value.vars) ? each.value.vars : {},
+      can(each.value.regional_vars) ? {
+        for k, v in each.value.regional_vars : k => lookup(v, local.aws_region, "")
+      } : {}
+    )
     content {
       namespace = "aws:elasticbeanstalk:application:environment"
       name      = setting.key
@@ -97,13 +100,14 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
   dynamic "setting" {
     for_each = concat(
-      local.vpc,
+      local.vpc[each.key],
+      local.per_app_healthcheck[each.key],
       local.environment,
       local.cloudwatch,
       local.healthcheck,
       local.command,
       local.traffic_splitting,
-      local.generic_elb,
+      local.generic_elb[each.key],
       local.alb,
       local.autoscaling_launch_config,
       local.autoscaling
@@ -117,7 +121,10 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
   }
 
   lifecycle {
-    ignore_changes = [setting]
+    ignore_changes = [
+      setting,
+      solution_stack_name
+    ]
   }
 
   tags = var.tags
@@ -125,7 +132,7 @@ resource "aws_elastic_beanstalk_environment" "sellix-eb-environment" {
 
 resource "aws_elastic_beanstalk_application" "sellix-eb" {
   name        = var.tags["Project"]
-  description = "NodeJS Web Application"
+  description = "Web Application"
 
   appversion_lifecycle {
     service_role          = aws_iam_role.sellix-eb-service-role.arn
@@ -134,8 +141,8 @@ resource "aws_elastic_beanstalk_application" "sellix-eb" {
   }
 
   tags = var.tags
-  
+
   lifecycle {
-    ignore_changes = [ tags ]
+    ignore_changes = [tags, appversion_lifecycle]
   }
 }
