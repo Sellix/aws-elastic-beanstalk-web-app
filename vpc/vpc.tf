@@ -170,24 +170,17 @@ resource "aws_route_table" "sellix-eb-public-route-table" {
 resource "aws_route_table" "sellix-eb-private-route-table" {
   count  = var.is_production ? length(local.availability_zones) : 0
   vpc_id = aws_vpc.sellix-eb-vpc.id
+
   route {
     cidr_block           = "0.0.0.0/0"
     nat_gateway_id       = length(aws_nat_gateway.sellix-eb-nat-gateway) > 0 ? aws_nat_gateway.sellix-eb-nat-gateway[count.index].id : null
     network_interface_id = length(aws_instance.fuck-nat) > 0 ? aws_instance.fuck-nat[count.index].primary_network_interface_id : null
   }
+
   route {
     ipv6_cidr_block        = "::/0"
     egress_only_gateway_id = one(aws_egress_only_internet_gateway.sellix-eb-eo-gw).id
   }
-  /*
-  dynamic "route" { // peering with backend
-    for_each = (var.is_production && local.is_peering) ? [1] : []
-    content {
-      cidr_block                = var.legacy-vpc-cidr-block
-      vpc_peering_connection_id = var.legacy-peering-conn-id
-    }
-  }
-  */
 
   lifecycle {
     create_before_destroy = "true"

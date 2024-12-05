@@ -106,11 +106,23 @@ variable "redis_node_types" {
 variable "cloudwatch_logs_days" {
   type = object({
     instance = optional(number),
-    healthd = optional(number) 
+    healthd  = optional(number)
   })
   description = "maximum number of days to retain CloudWatch logs"
   default = {
-    "instance": 90,
-    "healthd": 7,
+    "instance" : 90,
+    "healthd" : 7,
+  }
+}
+
+variable "slack_channel_names" {
+  type = object({
+    codepipeline = string,
+    beanstalk    = string
+  })
+  nullable = true
+  default = {
+    "codepipeline" : null,
+    "beanstalk" : null
   }
 }
