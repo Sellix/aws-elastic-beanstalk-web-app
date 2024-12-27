@@ -19,7 +19,6 @@ locals {
   env = { for env_name, vals in var.environments : env_name => merge({
     ELASTIC_BEANSTALK_PORT = 8080
     ENVIRONMENT            = var.is_production ? "production" : "staging"
-    NODE_ENV               = var.is_production ? "prod" : "staging"
     },
     contains(local.docker_environments, env_name) ? {
       AWS_REGION     = local.aws_region
@@ -348,7 +347,7 @@ locals {
     {
       namespace = "aws:autoscaling:launchconfiguration"
       name      = "SecurityGroups"
-      value = join(", ",
+      value = join(",",
         [aws_security_group.sellix-eb-security-group.id],
       !var.is_production ? [aws_security_group.sellix-eb-elb-security-group.id] : [])
     },
